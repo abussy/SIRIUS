@@ -37,6 +37,10 @@ option(SIRIUS_USE_POWER_COUNTER       "measure energy consumption with power cou
 option(BUILD_TESTING                  "build test executables" OFF) # override default setting in CTest module
 option(SIRIUS_USE_VCSQNM              "use variable cell stabilized quasi Newton method" OFF)
 
+#This is a test option, currently under development for julia bindings
+#ON by default for now, so we do not need to activly pass the option
+option(SIRIUS_CREATE_JULIA_MODULE     "create sirius Julia module" ON)
+
 set(SIRIUS_GPU_MEMORY_ALIGMENT "512" CACHE STRING "memory alignment of the GPU")
 set(SIRIUS_USE_FP32 "AUTO" CACHE STRING "Enable single precision support.")
 
@@ -77,6 +81,9 @@ if (SIRIUS_CREATE_PYTHON_MODULE)
   find_package(Python3 COMPONENTS Interpreter REQUIRED)
   set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
 endif()
+
+#TODO: something similar for Julia
+
 
 # Set release as the default build type.
 if (NOT CMAKE_BUILD_TYPE)
@@ -293,6 +300,10 @@ if(SIRIUS_CREATE_PYTHON_MODULE)
   # Python module
   add_subdirectory(python_module)
 endif(SIRIUS_CREATE_PYTHON_MODULE)
+
+if (SIRIUS_CREATE_JULIA_MODULE)
+  add_subdirectory(julia_module)
+endif(SIRIUS_CREATE_JULIA_MODULE)
 
 # applications
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)

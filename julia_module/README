@@ -1,0 +1,8 @@
+This is a very early test version of the SIRIUS Julia API. TO get it working, one needs:
+
+- a spack developing environement with Julia and llvm passed as external packages
+- An installation of CxxWrap.jl via the Julia package manager
+
+Note: for now, all the CMake paths are hardcoded.
+
+The biggest question at the moment: how to pass MPI comms from Julia to Sirius ?!?

@@ -26,6 +26,7 @@ if(SIRIUS_USE_CUDA OR SIRIUS_USE_ROCM)
 endif()
 
 set(_SOURCES
+  "api/test.cpp"
   "hamiltonian/hamiltonian.cpp"
   "hamiltonian/hamiltonian_k.cpp"
   "hamiltonian/local_operator.cpp"
