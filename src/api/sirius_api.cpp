@@ -13,6 +13,7 @@
 
 #include <ctype.h>
 #include <iostream>
+#include <string>
 #include "core/any_ptr.hpp"
 #include "core/profiler.hpp"
 #include "error_codes.hpp"
@@ -336,6 +337,12 @@ phase_Rlm_QE(Atom_type const& type__, int xi__)
 
 extern "C" {
 
+// For testing purposes
+int print_test(int val)
+{
+  return val; 
+}
+
 /*
 @api begin
 sirius_initialize:
@@ -591,6 +598,20 @@ sirius_create_context(int fcomm__, void** handler__, int* fcomm_k__, int* fcomm_
                 *handler__ = new any_ptr(new Simulation_context(comm, comm_k, comm_band));
             },
             error_code__);
+}
+
+//THIS IS A TEST, because calling the above routine followed by import_parameters leads to a Segfault
+//in Sirius (crucially, not on the Julia side)
+void
+sirius_create_context_from_json(int fcomm__, void** handler__, char const* fname__, int* error_code__)
+{
+   call_sirius(
+            [&]() {
+                auto& comm   = mpi::Communicator::map_fcomm(fcomm__);
+                *handler__ = new any_ptr(new Simulation_context(std::string(fname__), comm));
+            },
+            error_code__);
+
 }
 
 /*
