@@ -337,11 +337,6 @@ phase_Rlm_QE(Atom_type const& type__, int xi__)
 
 extern "C" {
 
-// For testing purposes
-int print_test(int val)
-{
-  return val; 
-}
 
 /*
 @api begin
@@ -596,61 +591,6 @@ sirius_create_context(int fcomm__, void** handler__, int* fcomm_k__, int* fcomm_
                 auto const& comm_band =
                         (fcomm_band__) ? mpi::Communicator::map_fcomm(*fcomm_band__) : mpi::Communicator();
                 *handler__ = new any_ptr(new Simulation_context(comm, comm_k, comm_band));
-            },
-            error_code__);
-}
-
-//THIS IS A TEST, because calling the above routine followed by import_parameters leads to a Segfault
-//in Sirius (crucially, not on the Julia side)
-void
-sirius_create_context_from_json(int fcomm__, void** handler__, char const* fname__, int* error_code__)
-{
-   call_sirius(
-            [&]() {
-                auto& comm   = mpi::Communicator::map_fcomm(fcomm__);
-                *handler__ = new any_ptr(new Simulation_context(std::string(fname__), comm));
-            },
-            error_code__);
-
-}
-
-//THIS IS A TEST, because to get the forces, we need to know the number of atoms
-void
-sirius_get_num_atoms(void* const* handler__, int* num_atoms__, int* error_code__)
-{
-   call_sirius(
-            [&]() {
-                auto& gs = get_gs(handler__);
-                *num_atoms__ = gs.ctx().unit_cell().num_atoms();
-            },
-            error_code__);
-}
-
-//THIS IS A TEST, in order to build the kpoint set accordinf to the JSON file, rather than by hand
-void
-sirius_get_kp_info_from_ctx(void* const* handler__, int* k_grid__, int* k_shift__, bool* use_symmetry__,
-                            int* error_code__)
-{
-   call_sirius(
-            [&]() {
-                
-                auto& sim_ctx = get_sim_ctx(handler__);
-
-                std::array<int, 3> k_grid;
-                std::array<int, 3> k_shift;      
-
-                k_grid = sim_ctx.cfg().parameters().ngridk();
-                k_shift = sim_ctx.cfg().parameters().shiftk();
-
-                k_grid__[0] = k_grid[0];
-                k_grid__[1] = k_grid[1];
-                k_grid__[2] = k_grid[2];
-
-                k_shift__[0] = k_shift[0];
-                k_shift__[1] = k_shift[1];
-                k_shift__[2] = k_shift[2];
-
-                *use_symmetry__ = sim_ctx.cfg().parameters().use_symmetry(); 
             },
             error_code__);
 }
@@ -6798,6 +6738,58 @@ void
 sirius_get_revision(int* version)
 {
     *version = revision();
+}
+
+// The following three functions are there to be used in the Julia bindings
+void
+sirius_create_context_from_json(int fcomm__, void** handler__, char const* fname__, int* error_code__)
+{
+   call_sirius(
+            [&]() {
+                auto& comm   = mpi::Communicator::map_fcomm(fcomm__);
+                *handler__ = new any_ptr(new Simulation_context(std::string(fname__), comm));
+            },
+            error_code__);
+
+}
+
+void
+sirius_get_num_atoms(void* const* handler__, int* num_atoms__, int* error_code__)
+{
+   call_sirius(
+            [&]() {
+                auto& gs = get_gs(handler__);
+                *num_atoms__ = gs.ctx().unit_cell().num_atoms();
+            },
+            error_code__);
+}
+
+void
+sirius_get_kp_info_from_ctx(void* const* handler__, int* k_grid__, int* k_shift__, bool* use_symmetry__,
+                            int* error_code__)
+{
+   call_sirius(
+            [&]() {
+
+                auto& sim_ctx = get_sim_ctx(handler__);
+
+                std::array<int, 3> k_grid;
+                std::array<int, 3> k_shift;
+
+                k_grid = sim_ctx.cfg().parameters().ngridk();
+                k_shift = sim_ctx.cfg().parameters().shiftk();
+
+                k_grid__[0] = k_grid[0];
+                k_grid__[1] = k_grid[1];
+                k_grid__[2] = k_grid[2];
+
+                k_shift__[0] = k_shift[0];
+                k_shift__[1] = k_shift[1];
+                k_shift__[2] = k_shift[2];
+
+                *use_symmetry__ = sim_ctx.cfg().parameters().use_symmetry();
+            },
+            error_code__);
 }
 
 } // extern "C"
