@@ -5,7 +5,8 @@ using MPI
 using JSON
 
 #Hardcoded path to the SIRIUS library TODO: needs to be generalized
-libpath = "/home/bussya/Documents/git/spack/opt/spack/linux-ubuntu23.10-skylake/gcc-13.2.0/sirius-develop-t5xeyb3ko6za5zyyjyd44ht4e36mgzxk/lib/libsirius.so"
+#lib = "/home/bussya/Documents/git/spack/opt/spack/linux-ubuntu23.10-skylake/gcc-13.2.0/sirius-develop-t5xeyb3ko6za5zyyjyd44ht4e36mgzxk/lib/libsirius.so"
+lib="libsirius.so"
 
 ### Utility function that maps an integer to a C MPI_comm
 comm2f(comm::MPI.Comm) = ccall((:MPI_Comm_c2f, MPI.libmpi), Cint, (MPI.MPI_Comm,), comm)
@@ -14,7 +15,7 @@ comm2f(comm::MPI.Comm) = ccall((:MPI_Comm_c2f, MPI.libmpi), Cint, (MPI.MPI_Comm,
 function initialize(call_mpi_init::Bool)
    call_mpi_init__ = Ref{Cuchar}(call_mpi_init)
    error_code__ = Ref{Cint}(0)
-   @ccall libpath.sirius_initialize(call_mpi_init__::Ref{Cuchar}, error_code__::Ref{Cint})::Cvoid
+   @ccall lib.sirius_initialize(call_mpi_init__::Ref{Cuchar}, error_code__::Ref{Cint})::Cvoid
    if error_code__[] != 0
       error("Sirius.initialize failed with error code", error_code__[])
    end
@@ -25,8 +26,8 @@ function finalize(call_mpi_fin::Bool, call_device_reset::Bool=true, call_fftw_fi
    call_device_reset__ = Ref{Cuchar}(call_device_reset)
    call_fftw_fin__ = Ref{Cuchar}(call_fftw_fin)
    error_code__ = Ref{Cint}(0)
-   @ccall libpath.sirius_finalize(call_mpi_fin__::Ref{Cuchar}, call_device_reset__::Ref{Cuchar}, 
-                                  call_fftw_fin__::Ref{Cuchar}, error_code__::Ref{Cint})::Cvoid
+   @ccall lib.sirius_finalize(call_mpi_fin__::Ref{Cuchar}, call_device_reset__::Ref{Cuchar}, 
+                              call_fftw_fin__::Ref{Cuchar}, error_code__::Ref{Cint})::Cvoid
    if error_code__[] != 0
       error("Sirius.finalize failed with error code", error_code__[])
    end
@@ -48,8 +49,7 @@ end
 ### Handler freeing function. Note: not added as finalizer as order metters
 function free_context_handler(ctx::ContextHandler)
    error_code__ = Ref{Cint}(0)
-   #TODO: should we look into cfunctions? It looks like most people go that way
-   @ccall libpath.sirius_free_object_handler(ctx.handler_ptr::Ref{Ptr{Cvoid}}, error_code__::Ref{Cint})::Cvoid
+   @ccall lib.sirius_free_object_handler(ctx.handler_ptr::Ref{Ptr{Cvoid}}, error_code__::Ref{Cint})::Cvoid
    if error_code__[] != 0
       error("Sirius.free_context_handler failed with error code", error_code__[])
    end
@@ -57,7 +57,7 @@ end
 
 function free_ground_state_handler(gs::GroundStateHandler)
    error_code__ = Ref{Cint}(0)
-   @ccall libpath.sirius_free_object_handler(gs.handler_ptr::Ref{Ptr{Cvoid}}, error_code__::Ref{Cint})::Cvoid
+   @ccall lib.sirius_free_object_handler(gs.handler_ptr::Ref{Ptr{Cvoid}}, error_code__::Ref{Cint})::Cvoid
    if error_code__[] != 0
       error("Sirius.free_ground_state_handler failed with error code", error_code__[])
    end
@@ -65,7 +65,7 @@ end
 
 function free_kpoint_set_handler(kps::KpointSetHandler)
    error_code__ = Ref{Cint}(0)
-   @ccall libpath.sirius_free_object_handler(kps.handler_ptr::Ref{Ptr{Cvoid}}, error_code__::Ref{Cint})::Cvoid
+   @ccall lib.sirius_free_object_handler(kps.handler_ptr::Ref{Ptr{Cvoid}}, error_code__::Ref{Cint})::Cvoid
    if error_code__[] != 0
       error("Sirius.free_kpoint_set_handler failed with error code", error_code__[])
    end
@@ -74,7 +74,7 @@ end
 ### Simulation context related functions
 function initialize_context(ctx::ContextHandler)
    error_code__ = Ref{Cint}(0)
-   @ccall libpath.sirius_initialize_context(ctx.handler_ptr::Ptr{Cvoid}, error_code__::Ref{Cint})::Cvoid
+   @ccall lib.sirius_initialize_context(ctx.handler_ptr::Ptr{Cvoid}, error_code__::Ref{Cint})::Cvoid
    if error_code__[] != 0
       error("Sirius.initialize_context failed with error code", error_code__[])
    end
@@ -84,8 +84,8 @@ function create_context_from_json(comm::MPI.Comm, fname::String)
    ctx = ContextHandler(C_NULL)
    fcomm__::Int32 = comm2f(comm)
    error_code__ = Ref{Cint}(0)
-   @ccall libpath.sirius_create_context_from_json(fcomm__::Int32, ctx.handler_ptr::Ref{Ptr{Cvoid}},
-                                                  fname::Cstring, error_code__::Ref{Cint})::Cvoid
+   @ccall lib.sirius_create_context_from_json(fcomm__::Int32, ctx.handler_ptr::Ref{Ptr{Cvoid}},
+                                              fname::Cstring, error_code__::Ref{Cint})::Cvoid
    if error_code__[] != 0
       error("Sirius.create_context_from_json failed with error code", error_code__[])
    end
@@ -98,9 +98,9 @@ function get_kp_info_from_ctx(ctx::ContextHandler)
    k_shift = Vector{Cint}(undef, 3)
    use_symmetry = Ref{Cuchar}(false)
    error_code__ = Ref{Cint}(0)
-   @ccall libpath.sirius_get_kp_info_from_ctx(ctx.handler_ptr::Ptr{Cvoid}, k_grid::Ref{Cint}, 
-                                              k_shift::Ref{Cint}, use_symmetry::Ref{Cuchar},
-                                              error_code__::Ref{Cint})::Cvoid
+   @ccall lib.sirius_get_kp_info_from_ctx(ctx.handler_ptr::Ptr{Cvoid}, k_grid::Ref{Cint}, 
+                                          k_shift::Ref{Cint}, use_symmetry::Ref{Cuchar},
+                                          error_code__::Ref{Cint})::Cvoid
    if error_code__[] != 0
       error("Sirius.get_kp_info_from_ctx failed with error code", error_code__[])
    end
@@ -114,9 +114,9 @@ function create_kset_from_grid(ctx::ContextHandler, k_grid::Vector{Int32}, k_shi
    kps = KpointSetHandler(C_NULL)
    error_code__ = Ref{Cint}(0)
    use_symmetry__::Ref{Cuchar} = use_symmetry
-   @ccall libpath.sirius_create_kset_from_grid(ctx.handler_ptr::Ptr{Cvoid}, k_grid::Ptr{Cint}, 
-                                               k_shift::Ptr{Cint}, use_symmetry__::Ref{Cuchar},
-                                               kps.handler_ptr::Ptr{Cvoid}, error_code__::Ref{Cint})::Cvoid
+   @ccall lib.sirius_create_kset_from_grid(ctx.handler_ptr::Ptr{Cvoid}, k_grid::Ptr{Cint}, 
+                                           k_shift::Ptr{Cint}, use_symmetry__::Ref{Cuchar},
+                                           kps.handler_ptr::Ptr{Cvoid}, error_code__::Ref{Cint})::Cvoid
    if error_code__[] != 0
       error("Sirius.create_kset_from_grid failed with error code", error_code__[])
    end
@@ -127,8 +127,8 @@ end
 function create_ground_state(kps::KpointSetHandler)
    gs = GroundStateHandler(C_NULL)
    error_code__ = Ref{Cint}(0)
-   @ccall libpath.sirius_create_ground_state(kps.handler_ptr::Ptr{Cvoid}, gs.handler_ptr::Ptr{Cvoid},
-                                             error_code__::Ref{Cint})::Cvoid
+   @ccall lib.sirius_create_ground_state(kps.handler_ptr::Ptr{Cvoid}, gs.handler_ptr::Ptr{Cvoid},
+                                         error_code__::Ref{Cint})::Cvoid
    if error_code__[] != 0
       error("Sirius.create_ground_state failed with error code", error_code__[])
    end
@@ -173,12 +173,12 @@ function find_ground_state(gs::GroundStateHandler, initial_guess::Bool, save_sta
    rho_min__ = Ref{Cdouble}(-1.0)
    
    error_code__ = Ref{Cint}(0)
-   @ccall libpath.sirius_find_ground_state(gs.handler_ptr::Ptr{Cvoid}, density_tol__::Ref{Cdouble},
-                                           energy_tol__::Ref{Cdouble}, iter_solver_tol__::Ref{Cdouble},
-                                           initial_guess__::Ref{Cuchar}, max_niter__::Ref{Cint},
-                                           save_state__::Ref{Cuchar}, converged__::Ref{Cuchar}, 
-                                           niter__::Ref{Cint}, rho_min__::Ref{Cdouble}, 
-                                           error_code__::Ref{Cint})::Cvoid
+   @ccall lib.sirius_find_ground_state(gs.handler_ptr::Ptr{Cvoid}, density_tol__::Ref{Cdouble},
+                                       energy_tol__::Ref{Cdouble}, iter_solver_tol__::Ref{Cdouble},
+                                       initial_guess__::Ref{Cuchar}, max_niter__::Ref{Cint},
+                                       save_state__::Ref{Cuchar}, converged__::Ref{Cuchar}, 
+                                       niter__::Ref{Cint}, rho_min__::Ref{Cdouble}, 
+                                       error_code__::Ref{Cint})::Cvoid
    if error_code__[] != 0
       error("Sirius.find_ground_state failed with error code", error_code__[])
    end
@@ -191,8 +191,8 @@ end
 function get_num_atoms(gs::GroundStateHandler)
    num_atoms__ = Ref{Cint}(0)
    error_code__ = Ref{Cint}(0)
-   @ccall libpath.sirius_get_num_atoms(gs.handler_ptr::Ptr{Cvoid}, num_atoms__::Ref{Cint},
-                                       error_code__::Ref{Cint})::Cvoid
+   @ccall lib.sirius_get_num_atoms(gs.handler_ptr::Ptr{Cvoid}, num_atoms__::Ref{Cint},
+                                   error_code__::Ref{Cint})::Cvoid
    if error_code__[] != 0
       error("Sirius.get_num_atoms failed with error code", error_code__[])
    end
@@ -203,8 +203,8 @@ function get_energy(gs::GroundStateHandler, label::String)
 
    energy__ = Ref{Cdouble}(0.0)
    error_code__ = Ref{Cint}(0)
-   @ccall libpath.sirius_get_energy(gs.handler_ptr::Ptr{Cvoid}, label::Cstring, energy__::Ref{Cdouble},
-                                    error_code__::Ref{Cint})::Cvoid
+   @ccall lib.sirius_get_energy(gs.handler_ptr::Ptr{Cvoid}, label::Cstring, energy__::Ref{Cdouble},
+                                error_code__::Ref{Cint})::Cvoid
    if error_code__[] != 0
       error("Sirius.get_energy failed with error code", error_code__[])
    end
@@ -216,8 +216,8 @@ function get_forces(gs::GroundStateHandler, label::String)
 
    forces__ = Matrix{Cdouble}(undef, 3, get_num_atoms(gs))
    error_code__ = Ref{Cint}(0)
-   @ccall libpath.sirius_get_forces(gs.handler_ptr::Ptr{Cvoid}, label::Cstring, forces__::Ref{Cdouble},
-                                    error_code__::Ref{Cint})::Cvoid 
+   @ccall lib.sirius_get_forces(gs.handler_ptr::Ptr{Cvoid}, label::Cstring, forces__::Ref{Cdouble},
+                                error_code__::Ref{Cint})::Cvoid 
    if error_code__[] != 0
       error("Sirius.get_forces failed with error code", error_code__[])
    end
@@ -229,8 +229,8 @@ function get_stress_tensor(gs::GroundStateHandler,  label::String)
    
    stress__ = Matrix{Cdouble}(undef, 3, 3) 
    error_code__ = Ref{Cint}(0)
-   @ccall libpath.sirius_get_stress_tensor(gs.handler_ptr::Ptr{Cvoid}, label::Cstring, stress__::Ref{Cdouble},
-                                           error_code__::Ref{Cint})::Cvoid 
+   @ccall lib.sirius_get_stress_tensor(gs.handler_ptr::Ptr{Cvoid}, label::Cstring, stress__::Ref{Cdouble},
+                                       error_code__::Ref{Cint})::Cvoid 
    if error_code__[] != 0
       error("Sirius.get_stress_tensor failed with error code", error_code__[])
    end

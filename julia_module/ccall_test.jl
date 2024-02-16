@@ -1,4 +1,4 @@
-include("SIRIUS.jl")
+include("Sirius.jl")
 import .Sirius
 
 using BenchmarkTools
