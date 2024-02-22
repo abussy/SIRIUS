@@ -6754,6 +6754,17 @@ sirius_create_context_from_json(int fcomm__, void** handler__, char const* fname
 }
 
 void
+sirius_create_context_from_json_commworld(void** handler__, char const* fname__, int* error_code__)
+{
+   call_sirius(
+            [&]() {
+                *handler__ = new any_ptr(new Simulation_context(std::string(fname__)));
+            },
+            error_code__);
+
+}
+
+void
 sirius_get_num_atoms(void* const* handler__, int* num_atoms__, int* error_code__)
 {
    call_sirius(

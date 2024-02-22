@@ -18,7 +18,7 @@ message(STATUS "Found JlCxx at ${JlCxx_location}")
 message("Lib is in : ${CMAKE_INSTALL_RPATH}")
 
 
-add_library(${libname} SHARED sirius_jl.cpp)
+add_library(${libname} SHARED sirius_cxxwrap.cpp)
 add_dependencies(${libname} sirius)
 
 target_link_libraries(${libname} sirius)
