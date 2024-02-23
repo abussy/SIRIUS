@@ -92,6 +92,17 @@ function create_context_from_json(comm::MPI.Comm, fname::String)
    return ctx
 end
 
+function create_context_from_json(fname::String)
+   ctx = ContextHandler(C_NULL)
+   error_code__ = Ref{Cint}(0)
+   @ccall lib.sirius_create_context_from_json_commworld(ctx.handler_ptr::Ref{Ptr{Cvoid}},
+                                                        fname::Cstring, error_code__::Ref{Cint})::Cvoid
+   if error_code__[] != 0
+      error("Sirius.create_context_from_json failed with error code", error_code__[])
+   end
+   return ctx
+end
+
 function get_kp_info_from_ctx(ctx::ContextHandler)
 
    k_grid = Vector{Cint}(undef, 3)
