@@ -2,7 +2,6 @@ include("Sirius.jl")
 import .Sirius
 
 using MKL
-using libblastrampoline_jll
 using SIRIUS_jll
 using BenchmarkTools
 using MPI
@@ -10,12 +9,12 @@ using LinearAlgebra
 @show BLAS.get_config()
 BLAS.lbt_set_num_threads(2)
 
-#MPI.Init()
-#@show comm = MPI.COMM_WORLD
+MPI.Init()
+@show comm = MPI.COMM_WORLD
 
-@show Sirius.initialize(true)
-#@show ctx = Sirius.create_context_from_json(comm, "./sirius.json")
-@show ctx = Sirius.create_context_from_json("./sirius.json")
+@show Sirius.initialize(false)
+@show ctx = Sirius.create_context_from_json(comm, "./sirius.json")
+#@show ctx = Sirius.create_context_from_json("./sirius.json")
 @show Sirius.initialize_context(ctx)
 
 
@@ -37,6 +36,6 @@ BLAS.lbt_set_num_threads(2)
 @show Sirius.free_ground_state_handler(gs)
 @show Sirius.free_kpoint_set_handler(kps)
 @show Sirius.free_context_handler(ctx)
-@show Sirius.finalize(true)
+@show Sirius.finalize(false)
 
-#MPI.Finalize()
+MPI.Finalize()

@@ -9,7 +9,6 @@ name = "SIRIUS"
 version = v"7.5.2"
 
 sources = [
-   #GitSource("https://github.com/abussy/SIRIUS/", "c45f03811e439c1a49858bcacd849a26932b2cf8")
    GitSource("https://github.com/abussy/SIRIUS/", "6e6b337585e6f37fc09fe7e73dcd319af45e3b3d")
 ]
 
@@ -24,24 +23,8 @@ mkdir build
 cd build
 
 #For GSL to be linked correctly to cblas
-export LDFLAGS="-lgsl -lgslcblas -lblastrampoline"
-
-#if [[ "$nbits" == "64" ]]; then
-#    OPENBLAS_LIB="$libdir/libopenblas64_.$dlext"
-#    
-#    # Fix suffixes for 64-bit OpenBLAS
-#    SYMB_DEFS=()
-#    SYMBOLS=(ssyevr cheevd dsyevr zheevd ssyevd dgesv dgetrf dsyevd ilaenv dsytrf dsygvx ssygvx 
-#             zhemm chegvx dlamch zhegvx dlartg dgetri zheevx zgetrf cheevx dsytrs zgetri zgemm
-#             zpotrf ztrtri dscal dgemm ztrmm dtrmm dtrtri dpotrf)
-#    for sym in ${SYMBOLS[@]}; do
-#        SYMB_DEFS+=("-D${sym}_=${sym}_64_")
-#    done
-#    export CXXFLAGS="${SYMB_DEFS[@]}"
-#
-#else
-#    OPENBLAS_LIB="$libdir/libopenblas.$dlext"
-#fi
+export LDFLAGS="-lgsl -lgslcblas -lblastrampoline -lscalapack32"
+    
 
 CMAKE_ARGS="-DSIRIUS_CREATE_FORTRAN_BINDINGS=ON \
             -DSIRIUS_USE_OPENMP=ON \
@@ -52,24 +35,36 @@ CMAKE_ARGS="-DSIRIUS_CREATE_FORTRAN_BINDINGS=ON \
             -DCMAKE_INSTALL_PREFIX=$prefix \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_SHARED_LIBS=ON \
+            -DSIRIUS_USE_SCALAPACK=ON \
+            -DSIRIUS_SCALAPACK_LIBRARIES=${libdir} \
             -DMPI_C_COMPILER=$bindir/mpicc \
             -DMPI_CXX_COMPILER=$bindir/mpicxx"
 
-#TODO: the following only works with MPItrampoline, and therefore not with HDF5
-if [[ "${target}" == *-apple-* ]]; then
+if [[ "${target}" == *-apple-mpich ]]; then
   CMAKE_ARGS="${CMAKE_ARGS} \
                -DMPI_C_LIB_NAMES='mpi;pmpi;hwloc' \
                -DMPI_CXX_LIB_NAMES='mpicxx;mpi;pmpi;hwloc' \
-               -DMPI_mpicxx_LIBRARY=${prefix}/lib/mpich/lib/libmpicxx.a \
-               -DMPI_mpi_LIBRARY=${prefix}/lib/mpich/lib/libmpi.a \
-               -DMPI_pmpi_LIBRARY=${prefix}/lib/mpich/lib/libpmpi.a \
-               -DMPI_hwloc_LIBRARY=${prefix}/lib/libhwloc.dylib"
+               -DMPI_mpicxx_LIBRARY=${libdir}/libmpicxx.dylib \
+               -DMPI_mpi_LIBRARY=${libdir}/libmpi.dylib \
+               -DMPI_pmpi_LIBRARY=${libdir}/libpmpi.dylib \
+               -DMPI_hwloc_LIBRARY=${libdir}/libhwloc.dylib"
+fi
+
+if [[ "${target}" == *-apple-mpitrampoline ]]; then
+  CMAKE_ARGS="${CMAKE_ARGS} \
+               -DMPI_C_LIB_NAMES='mpi;pmpi;hwloc' \
+               -DMPI_CXX_LIB_NAMES='mpicxx;mpi;pmpi;hwloc' \
+               -DMPI_mpicxx_LIBRARY=${libdir}/mpich/lib.libmpicxx.a \
+               -DMPI_mpi_LIBRARY=${libdir}/mpich/lib/libmpi.a \
+               -DMPI_pmpi_LIBRARY=${libdir}/mpich/lib/libpmpi.a \
+               -DMPI_hwloc_LIBRARY=${libdir}/libhwloc.dylib"
 fi
 
 #somehow need to run cmake twice for MPI to work
 cmake .. ${CMAKE_ARGS} || cmake .. ${CMAKE_ARGS}
 
-make -j${nproc} install
+#make -j${nproc} install
+make -j8 install
 
 """
 
@@ -81,9 +76,9 @@ augment_platform_block = """
 #platforms = supported_platforms()                                                       
 platforms = [Platform("x86_64", "linux")]
 filter!(!Sys.iswindows, platforms)
-filter!(!Sys.isapple, platforms) #TODO: fix apple installation
+#filter!(!Sys.isapple, platforms) #TODO: fix apple installation
 filter!(!Sys.isfreebsd, platforms)
-filter!(p -> !(libc(p) == "musl"), platforms)
+#filter!(p -> !(libc(p) == "musl"), platforms)
 platforms = expand_cxxstring_abis(platforms)
 
 platforms = expand_gfortran_versions(platforms)
@@ -94,9 +89,11 @@ products = [
 ]
 
 # Dependencies that must be installed before this package can be built
+#TODO: add SCALAPACK
 dependencies = [
     Dependency("GSL_jll"), 
-    #Dependency("OpenBLAS32_jll"), 
+    Dependency("SCALAPACK32_jll"), 
+    #Using either MKL or OPENBLAS32
     Dependency("libblastrampoline_jll"), 
     Dependency("Libxc_jll"), 
     Dependency("HDF5_jll"),
@@ -112,7 +109,7 @@ dependencies = [
     Dependency("LLVMOpenMP_jll", platforms=filter(Sys.isapple, platforms))
 ]
 
-platforms, platform_dependencies = MPI.augment_platforms(platforms; MPItrampoline_compat="5.3.0", OpenMPI_compat="4.1.6, 5")
+platforms, platform_dependencies = MPI.augment_platforms(platforms; MPItrampoline_compat="5.2.1", OpenMPI_compat="4.1.6, 5")
 # Avoid platforms where the MPI implementation isn't supported
 # OpenMPI
 platforms = filter(p -> !(p["mpi"] == "openmpi" && arch(p) == "armv6l" && libc(p) == "glibc"), platforms)
@@ -121,11 +118,13 @@ platforms = filter(p -> !(p["mpi"] == "mpitrampoline" && (Sys.iswindows(p) || li
 platforms = filter(p -> !(p["mpi"] == "mpitrampoline" && Sys.isfreebsd(p)), platforms)
 
 ###TODO: temporary, only mpich for testing
+#platforms = filter(p -> !(p["mpi"] == "mpich"), platforms)
 #platforms = filter(p -> !(p["mpi"] == "openmpi"), platforms)
-#platforms = filter(p -> !(p["mpi"] == "mpitrampoline"), platforms)
+#platforms = filter(p -> !(p["mpi"] == "mpitrampoline"), platforms) #MPItrampoline hangs with SCALAPACK, maybe because
+                                                                   #of diff. compatibility, but then there is alos HDF5
 
 append!(dependencies, platform_dependencies)
 
 # Build the tarballs, and possibly a `build.jl` as well.
 build_tarballs(ARGS, name, version, sources, script, platforms, products, dependencies;
-               julia_compat="1.9", preferred_gcc_version = v"10")
+               augment_platform_block, julia_compat="1.6", preferred_gcc_version = v"10")
