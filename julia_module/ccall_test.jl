@@ -32,7 +32,6 @@ MPI.Init()
 
 @show stress = Sirius.get_stress_tensor(gs, "total")
 
-
 @show Sirius.free_ground_state_handler(gs)
 @show Sirius.free_kpoint_set_handler(kps)
 @show Sirius.free_context_handler(ctx)

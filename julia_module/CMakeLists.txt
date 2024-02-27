@@ -7,7 +7,7 @@ set(libname sirius_jl)
 
 
 #TODO: hardcoded PATH, this needs to change
-list(APPEND CMAKE_PREFIX_PATH /home/bussya/.julia/artifacts/b28969bfe0d4c551302f58ecbf5a91930aa66489)
+list(APPEND CMAKE_PREFIX_PATH /home/bussya/.julia/artifacts/fb412eee87eae845b84a799f0cabf241142406d7)
 find_package(JlCxx REQUIRED)
 get_target_property(JlCxx_location JlCxx::cxxwrap_julia LOCATION)
 get_filename_component(JlCxx_location ${JlCxx_location} DIRECTORY)

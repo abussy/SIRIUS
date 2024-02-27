@@ -47,6 +47,7 @@ mutable struct KpointSetHandler
 end
 
 ### Handler freeing function. Note: not added as finalizer as order metters
+#TODO: could pass these destructors as struct finalizer, except that they may be triggered in any order
 function free_context_handler(ctx::ContextHandler)
    error_code__ = Ref{Cint}(0)
    @ccall lib.sirius_free_object_handler(ctx.handler_ptr::Ref{Ptr{Cvoid}}, error_code__::Ref{Cint})::Cvoid
