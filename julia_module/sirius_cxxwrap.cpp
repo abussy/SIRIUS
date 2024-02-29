@@ -8,6 +8,8 @@
 using json = nlohmann::json;
 using namespace sirius;
 
+//TODO: not a big fan of not being able to directly return Julia arrays (but rather passing by pointer)
+
 //helpers to wrap the templated r3::vector class
 struct WrapR3Vector
 {
@@ -20,6 +22,12 @@ struct WrapR3Vector
     wrapped.method("length", &WrappedT::length);
     wrapped.method("length2", &WrappedT::length2);
     wrapped.module().method("get_element", [](const WrappedT& vec, const int i) {return vec[i];});
+    wrapped.module().method("fill_vector", [](typename WrappedT::value_type* jvec, const WrappedT& cvec) 
+                            {
+                              jvec[0] = cvec[0];
+                              jvec[1] = cvec[1];
+                              jvec[2] = cvec[2];
+                            });
   }
 };
 
@@ -32,6 +40,16 @@ struct WrapR3Matrix
     typedef typename TypeWrapperT::type WrappedT;
     wrapped.template constructor<>();
     wrapped.module().method("get_element", [](const WrappedT& mat, const int i, const int j) {return mat(i, j);});
+    //Note: had to add a value_type in the definition of the r3::matrix class
+    wrapped.module().method("fill_matrix", [](typename WrappedT::value_type* jmat, const WrappedT& cmat)
+                            {
+                              for (int i=0; i<3; i++){
+                                 for (int j=0; j<3; j++){
+                                    //TODO: not sure whether that should be transposed
+                                    jmat[3*i+j] = cmat(i, j);
+                                 }
+                              }
+                            });
   }
 };
 
@@ -44,8 +62,16 @@ struct WrapMdMatrix
     typedef typename TypeWrapperT::type WrappedT;
     wrapped.template constructor<>();
     //TODO: would be nice to define that function elsewhere for more readability
-    //TODO: would be nice to return a full 2D array instead of element by element
     wrapped.module().method("get_element", [](const WrappedT& mat, size_t const idx) {return mat[idx];});
+    wrapped.module().method("fill_matrix", [](typename WrappedT::value_type* jmat, const WrappedT& cmat)
+                            {
+                              std::cout<<"dimensions: "<<cmat.size(0)<<" "<<cmat.size(1)<<std::endl;
+                              for (int i=0; i<cmat.size(0); i++){
+                                 for (int j=0; j<cmat.size(1); j++){
+                                    jmat[cmat.size(1)*i + j] = cmat[cmat.size(1)*i + j];
+                                 }
+                              }
+                            });
   }
 };
 
@@ -126,6 +152,8 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
    mod.method("get_shiftk", [](const Simulation_context& ctx)
               {auto sk = ctx.cfg().parameters().shiftk();
                return r3::vector<int>(sk[0], sk[1], sk[2]);});
+   mod.method("get_num_atoms", [](const Simulation_context& ctx)
+              {return ctx.unit_cell().num_atoms();});
 
    //Kpoint set class
    mod.add_type<K_point_set>("KPointSet")

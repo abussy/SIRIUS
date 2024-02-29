@@ -233,6 +233,7 @@ class matrix
     T mtrx_[3][3];
 
   public:
+    typedef T value_type;
     template <typename U>
     friend class matrix;
 

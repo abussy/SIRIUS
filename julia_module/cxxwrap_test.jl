@@ -45,26 +45,16 @@ energy = SiriusJl.total_energy(gs)
 sirius_forces = SiriusJl.forces(gs)
 @show fmat = SiriusJl.calc_forces_total(sirius_forces)
 
-forces = Matrix{Float64}(undef, 5, 3)
-
-for idx1 = 0:4 #number of atoms, hardcoded for now
-   for idx2 = 0:2
-      #TODO: hide this in a function somewhere, or even better, in the CxxWrap module
-      forces[idx1+1, idx2+1] = SiriusJl.get_element(fmat, 3*idx1 + idx2)
-   end
-end
+natoms = SiriusJl.get_num_atoms(ctx)
+forces = Matrix{Float64}(undef, 3, natoms)
+SiriusJl.fill_matrix(forces, fmat)
 @show forces
 
 sirius_stress = SiriusJl.stress(gs)
 @show smat = SiriusJl.calc_stress_total(sirius_stress)
 
 stress = Matrix{Float64}(undef, 3, 3)
-for idx1 = 0:2
-   for idx2 = 0:2
-      #TODO: hide this in a function somewhere, or even better, in the CxxWrap module
-      stress[idx1+1, idx2+1] = SiriusJl.get_element(smat, idx1, idx2)
-   end
-end
+SiriusJl.fill_matrix(stress, smat)
 @show stress
 
 @show SiriusJl.finalize(false, true, true)

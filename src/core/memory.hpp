@@ -640,6 +640,8 @@ class mdarray
     operator=(mdarray<T, N> const& src) = delete;
 
   public:
+    typedef T value_type;
+
     /// Default constructor.
     mdarray() = default;
 
