@@ -2,7 +2,6 @@ include("Sirius.jl")
 import .Sirius
 
 using MKL
-using SIRIUS_jll
 using BenchmarkTools
 using MPI
 using LinearAlgebra
