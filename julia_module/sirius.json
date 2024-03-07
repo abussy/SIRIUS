@@ -17,8 +17,8 @@
 
         "use_symmetry" : true,
 
-        "gk_cutoff" : 6.0,
-        "pw_cutoff" : 20.00,
+        "gk_cutoff" : 12.0,
+        "pw_cutoff" : 40.00,
 
         "energy_tol" : 1e-8,
         "density_tol" : 8e-6,
