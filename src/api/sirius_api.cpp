@@ -6742,6 +6742,16 @@ sirius_get_revision(int* version)
 
 // The following three functions are there to be used in the Julia bindings
 void
+sirius_is_initialized(bool* status__, int* error_code__)
+{
+   call_sirius(
+            [&]() {
+                *status__ = is_initialized();
+            },
+            error_code__);
+}
+
+void
 sirius_create_context_from_json(int fcomm__, void** handler__, char const* fname__, int* error_code__)
 {
    call_sirius(
@@ -6762,6 +6772,17 @@ sirius_create_context_from_json_commworld(void** handler__, char const* fname__,
             },
             error_code__);
 
+}
+
+void
+sirius_create_empty_context(int fcomm__, void** handler__, int* error_code__)
+{
+    call_sirius(
+            [&]() {
+                auto& comm   = mpi::Communicator::map_fcomm(fcomm__);
+                *handler__ = new any_ptr(new Simulation_context(comm));
+            },
+            error_code__);
 }
 
 void
@@ -6799,6 +6820,17 @@ sirius_get_kp_info_from_ctx(void* const* handler__, int* k_grid__, int* k_shift_
                 k_shift__[2] = k_shift[2];
 
                 *use_symmetry__ = sim_ctx.cfg().parameters().use_symmetry();
+            },
+            error_code__);
+}
+
+void
+sirius_print_gs_info(void* const* handler__, int* error_code__)
+{
+    call_sirius(
+            [&]() {
+                auto& gs = get_gs(handler__);
+                gs.print_info(gs.ctx().out());
             },
             error_code__);
 }

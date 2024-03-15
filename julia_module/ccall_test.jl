@@ -8,7 +8,7 @@ using LinearAlgebra
 @show BLAS.get_config()
 BLAS.lbt_set_num_threads(2)
 
-@show Sirius.libpath = ENV["LD_LIBRARY_PATH"]*"/libsirius.so"
+#@show Sirius.libpath = ENV["LD_LIBRARY_PATH"]*"/libsirius.so"
 
 MPI.Init()
 @show comm = MPI.COMM_WORLD

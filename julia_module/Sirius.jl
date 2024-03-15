@@ -34,6 +34,16 @@ function finalize(call_mpi_fin::Bool, call_device_reset::Bool=true, call_fftw_fi
    end
 end
 
+function is_initialized()
+   status__ = Ref{Cuchar}(false)
+   error_code__ = Ref{Cint}(0)
+   @ccall libpath.sirius_is_initialized(status__::Ref{Cuchar}, error_code__::Ref{Cint})::Cvoid
+   if error_code__[] != 0
+      error("Sirius.is_initialized failed with error code", error_code__[])
+   end
+   return Bool(status__[])
+end
+
 ### Defining types to the handler pointers of the C-API
 mutable struct ContextHandler
    handler_ptr::Ref{Ptr{Cvoid}}
@@ -101,6 +111,18 @@ function create_context_from_json(fname::String)
                                                         fname::Cstring, error_code__::Ref{Cint})::Cvoid
    if error_code__[] != 0
       error("Sirius.create_context_from_json failed with error code", error_code__[])
+   end
+   return ctx
+end
+
+function create_context(comm:: MPI.Comm)
+   ctx = ContextHandler(C_NULL)
+   fcomm__::Int32 = comm2f(comm)
+   error_code__ = Ref{Cint}(0)
+   @ccall libpath.sirius_create_empty_context(fcomm__::Int32, ctx.handler_ptr::Ref{Ptr{Cvoid}}, 
+                                              error_code__::Ref{Cint})::Cvoid
+   if error_code__[] != 0
+      error("Sirius.create_empty_context failed with error code", error_code__[])
    end
    return ctx
 end
@@ -249,6 +271,22 @@ function get_stress_tensor(gs::GroundStateHandler,  label::String)
    end
 
    return stress__
+end
+
+function print_info(ctx::ContextHandler)
+   error_code__ = Ref{Cint}(0)
+   @ccall libpath.sirius_print_info(ctx.handler_ptr::Ptr{Cvoid}, error_code__::Ref{Cint})::Cvoid
+   if error_code__[] != 0
+      error("Sirius.print_info failed with error code", error_code__[])
+   end
+end
+
+function print_gs_info(gs::GroundStateHandler)
+   error_code__ = Ref{Cint}(0)
+   @ccall libpath.sirius_print_gs_info(gs.handler_ptr::Ptr{Cvoid}, error_code__::Ref{Cint})::Cvoid
+   if error_code__[] != 0
+      error("Sirius.print_gs_info failed with error code", error_code__[])
+   end
 end
 
 end #module
