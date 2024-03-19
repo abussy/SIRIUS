@@ -58,7 +58,6 @@ mutable struct KpointSetHandler
 end
 
 ### Handler freeing function. Note: not added as finalizer as order metters
-#TODO: could pass these destructors as struct finalizer, except that they may be triggered in any order
 function free_context_handler(ctx::ContextHandler)
    error_code__ = Ref{Cint}(0)
    @ccall libpath.sirius_free_object_handler(ctx.handler_ptr::Ref{Ptr{Cvoid}}, error_code__::Ref{Cint})::Cvoid
@@ -154,6 +153,25 @@ function create_kset_from_grid(ctx::ContextHandler, k_grid::Vector{Int32}, k_shi
                                            kps.handler_ptr::Ptr{Cvoid}, error_code__::Ref{Cint})::Cvoid
    if error_code__[] != 0
       error("Sirius.create_kset_from_grid failed with error code", error_code__[])
+   end
+   return kps
+end
+
+function create_kset(ctx::ContextHandler, num_kp::Integer, k_coords::AbstractVector, k_weights::Vector{Float64})
+   num_kpoints__ = Ref{Cint}(num_kp)
+   kpoints__ = Vector{Cdouble}(undef, 3*num_kp)
+   for (ikp, k_coord) in enumerate(k_coords)
+      kpoints__[3*(ikp-1)+1:3*ikp] = k_coord[:]
+   end
+   @show num_kpoints__
+   init_kset__::Ref{Cuchar} = true
+   kps = KpointSetHandler(C_NULL)
+   error_code__ = Ref{Cint}(0)
+   @ccall libpath.sirius_create_kset(ctx.handler_ptr::Ptr{Cvoid}, num_kpoints__::Ref{Cint}, kpoints__::Ptr{Cdouble},
+                                     k_weights::Ptr{Cdouble}, init_kset__::Ref{Cuchar}, kps.handler_ptr::Ptr{Cvoid},
+                                     error_code__::Ref{Cint})::Cvoid
+   if error_code__[] != 0
+      error("Sirius.create_kset failed with error code", error_code__[])
    end
    return kps
 end
