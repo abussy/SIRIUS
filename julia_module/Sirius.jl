@@ -4,9 +4,6 @@ module Sirius
 using MPI
 using SIRIUS_jll
 
-#lib = libsirius #from SIRIUS_jll
-#lib = ENV["LD_LIBRARY_PATH"]*"/libsirius.so" #from spack local build
-#@show lib
 libpath = libsirius
 
 ### Utility function that maps an integer to a C MPI_comm
@@ -57,7 +54,7 @@ mutable struct KpointSetHandler
    handler_ptr::Ref{Ptr{Cvoid}}
 end
 
-### Handler freeing function. Note: not added as finalizer as order metters
+### Handler freeing function. Note: not added as finalizer as order matters
 function free_context_handler(ctx::ContextHandler)
    error_code__ = Ref{Cint}(0)
    @ccall libpath.sirius_free_object_handler(ctx.handler_ptr::Ref{Ptr{Cvoid}}, error_code__::Ref{Cint})::Cvoid
@@ -114,32 +111,61 @@ function create_context_from_json(fname::String)
    return ctx
 end
 
-function create_context(comm:: MPI.Comm)
-   ctx = ContextHandler(C_NULL)
-   fcomm__::Int32 = comm2f(comm)
-   error_code__ = Ref{Cint}(0)
-   @ccall libpath.sirius_create_empty_context(fcomm__::Int32, ctx.handler_ptr::Ref{Ptr{Cvoid}}, 
-                                              error_code__::Ref{Cint})::Cvoid
-   if error_code__[] != 0
-      error("Sirius.create_empty_context failed with error code", error_code__[])
-   end
-   return ctx
-end
-
-function get_kp_info_from_ctx(ctx::ContextHandler)
+function get_kp_params_from_ctx(ctx::ContextHandler)
 
    k_grid = Vector{Cint}(undef, 3)
    k_shift = Vector{Cint}(undef, 3)
    use_symmetry = Ref{Cuchar}(false)
    error_code__ = Ref{Cint}(0)
-   @ccall libpath.sirius_get_kp_info_from_ctx(ctx.handler_ptr::Ptr{Cvoid}, k_grid::Ref{Cint}, 
-                                          k_shift::Ref{Cint}, use_symmetry::Ref{Cuchar},
-                                          error_code__::Ref{Cint})::Cvoid
+   @ccall libpath.sirius_get_kp_params_from_ctx(ctx.handler_ptr::Ptr{Cvoid}, k_grid::Ref{Cint}, 
+                                                k_shift::Ref{Cint}, use_symmetry::Ref{Cuchar},
+                                                error_code__::Ref{Cint})::Cvoid
    if error_code__[] != 0
-      error("Sirius.get_kp_info_from_ctx failed with error code", error_code__[])
+      error("Sirius.get_kp_params_from_ctx failed with error code", error_code__[])
    end
-
    return k_grid, k_shift, Bool(use_symmetry[])
+end
+
+function get_scf_params_from_ctx(ctx::ContextHandler)
+
+   density_tol = Ref{Cdouble}(0.0)
+   energy_tol = Ref{Cdouble}(0.0)
+   iter_tol = Ref{Cdouble}(0.0)
+   max_niter = Ref{Cint}(0)
+   error_code__ = Ref{Cint}(0)
+   @ccall libpath.sirius_get_scf_params_from_ctx(ctx.handler_ptr::Ptr{Cvoid}, density_tol::Ref{Cdouble},
+                                                 energy_tol::Ref{Cdouble}, iter_tol::Ref{Cdouble},
+                                                 max_niter::Ref{Cint}, error_code__::Ref{Cint})::Cvoid
+   if error_code__[] != 0
+      error("Sirius.get_scf_params_from_ctx failed with error code", error_code__[])
+   end
+   return density_tol[], energy_tol[], iter_tol[], max_niter[]
+end
+
+function get_nlcg_params_from_ctx(ctx::ContextHandler)
+
+   temp = Ref{Cdouble}(0.0)
+   smearing = Vector{UInt8}(undef, 32)
+   kappa = Ref{Cdouble}(0.0)
+   tau = Ref{Cdouble}(0.0)
+   tol = Ref{Cdouble}(0.0)
+   maxiter = Ref{Cint}(0.0)
+   restart = Ref{Cint}(0)
+   processing_unit = Vector{UInt8}(undef, 32)
+   error_code__ = Ref{Cint}(0)
+   @ccall libpath.sirius_get_nlcg_params_from_ctx(ctx.handler_ptr::Ptr{Cvoid}, temp::Ref{Cdouble},
+                                                  smearing::Ptr{UInt8}, kappa::Ref{Cdouble}, tau::Ref{Cdouble}, 
+                                                  tol::Ref{Cdouble}, maxiter::Ref{Cint}, restart::Ref{Cint}, 
+                                                  processing_unit::Ptr{UInt8}, error_code__::Ref{Cint})::Cvoid
+   if error_code__[] != 0
+      error("Sirius.get_nlcg_params_from_ctx failed with error code", error_code__[])
+   end
+   smearing[end] = 0
+   smear = GC.@preserve smearing unsafe_string(pointer(smearing))
+   processing_unit[end] = 0
+   pu = GC.@preserve processing_unit unsafe_string(pointer(processing_unit))
+   if isempty(pu) pu = "none" end
+   return temp[], smear, kappa[], tau[], tol[], maxiter[], restart[], pu
 end
 
 ### Kpoint set related functions
@@ -163,7 +189,6 @@ function create_kset(ctx::ContextHandler, num_kp::Integer, k_coords::AbstractVec
    for (ikp, k_coord) in enumerate(k_coords)
       kpoints__[3*(ikp-1)+1:3*ikp] = k_coord[:]
    end
-   @show num_kpoints__
    init_kset__::Ref{Cuchar} = true
    kps = KpointSetHandler(C_NULL)
    error_code__ = Ref{Cint}(0)
@@ -188,37 +213,17 @@ function create_ground_state(kps::KpointSetHandler)
    return gs
 end
 
-function find_ground_state(gs::GroundStateHandler, initial_guess::Bool, save_state::Bool;
-                           density_tol::Float64 = -1.0, energy_tol::Float64 = -1.0, 
-                           iter_solver_tol::Float64 = -1.0, max_niter::Int64 = -1)
+function find_ground_state(gs::GroundStateHandler, initial_guess::Bool, save_state::Bool,
+                           density_tol::Float64, energy_tol::Float64,
+                           iter_solver_tol::Float64, max_niter::Integer)
 
-   # Optional keyword arguments: default behavior is to take value from the JSON file
-
-   #input args
+   #input
    initial_guess__ = Ref{Cuchar}(initial_guess)
    save_state__ = Ref{Cuchar}(save_state)
-   
-   #optional args
-   if density_tol < 0.0
-      density_tol__ = Ptr{Cdouble}(C_NULL)
-   else
-      density_tol__ = Ref{Cdouble}(density_tol)
-   end 
-   if energy_tol < 0.0
-      energy_tol__ = Ptr{Cdouble}(C_NULL)
-   else
-      energy_tol__ = Ref{Cdouble}(energy_tol)
-   end
-   if iter_solver_tol < 0.0
-      iter_solver_tol__ = Ptr{Cdouble}(C_NULL)
-   else
-      iter_solver_tol__ = Ref{Cdouble}(iter_solver_tol)
-   end
-   if max_niter < 0
-      max_niter__ = Ptr{Cint}(C_NULL)
-   else
-      max_niter__ = Ref{Cint}(max_niter)
-   end
+   density_tol__ = Ref{Cdouble}(density_tol)
+   energy_tol__ = Ref{Cdouble}(energy_tol)
+   iter_solver_tol__ = Ref{Cdouble}(iter_solver_tol)
+   max_niter__ = Ref{Cint}(max_niter)
 
    #output
    converged__ = Ref{Cuchar}(false)
@@ -238,6 +243,33 @@ function find_ground_state(gs::GroundStateHandler, initial_guess::Bool, save_sta
    
    return Bool(converged__[]), niter__[], rho_min__[]
 
+end
+
+function nlcg(gs::GroundStateHandler, kps::KpointSetHandler, temp::Float64, smearing::String,
+              kappa::Float64, tau::Float64, tol::Float64, maxiter::Integer, restart::Integer,
+              processing_unit::String)
+
+   temp__ = Ref{Cdouble}(temp)
+   smearing__ = smearing
+   kappa__ = Ref{Cdouble}(kappa)
+   tau__ = Ref{Cdouble}(tau)
+   tol__ = Ref{Cdouble}(tol)
+   maxiter__ = Ref{Cint}(maxiter)
+   restart__ = Ref{Cint}(restart)
+   processing_unit__ = processing_unit
+
+   converged__ = Ref{Cuchar}(false)
+   error_code__ = Ref{Cint}(0)
+   @ccall libpath.sirius_nlcg_params(gs.handler_ptr::Ptr{Cvoid}, kps.handler_ptr::Ptr{Cvoid}, 
+                                     temp__::Ref{Cdouble}, smearing__::Cstring, kappa__::Ref{Cdouble},
+                                     tau__::Ref{Cdouble}, tol__::Ref{Cdouble}, maxiter__::Ref{Cint},
+                                     restart__::Ref{Cint}, processing_unit__::Cstring, 
+                                     converged__::Ref{Cuchar},error_code__::Ref{Cint})::Cvoid
+   if error_code__[] != 0
+      error("Sirius.nlcg failed with error code", error_code__[])
+   end
+
+   return Bool(converged__[])
 end
 
 ###  Function for querying the results
@@ -289,22 +321,6 @@ function get_stress_tensor(gs::GroundStateHandler,  label::String)
    end
 
    return stress__
-end
-
-function print_info(ctx::ContextHandler)
-   error_code__ = Ref{Cint}(0)
-   @ccall libpath.sirius_print_info(ctx.handler_ptr::Ptr{Cvoid}, error_code__::Ref{Cint})::Cvoid
-   if error_code__[] != 0
-      error("Sirius.print_info failed with error code", error_code__[])
-   end
-end
-
-function print_gs_info(gs::GroundStateHandler)
-   error_code__ = Ref{Cint}(0)
-   @ccall libpath.sirius_print_gs_info(gs.handler_ptr::Ptr{Cvoid}, error_code__::Ref{Cint})::Cvoid
-   if error_code__[] != 0
-      error("Sirius.print_gs_info failed with error code", error_code__[])
-   end
 end
 
 end #module

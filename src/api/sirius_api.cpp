@@ -5695,15 +5695,15 @@ sirius_nlcg_params(void* const* handler__, void* const* ks_handler__, double con
                 }
 
                 nlcglib::smearing_type smearing_t;
-                if (smear.compare("FD") == 0) {
+                if (smear.compare("FD") == 0 || smear.compare("fermi_dirac") == 0) {
                     smearing_t = nlcglib::smearing_type::FERMI_DIRAC;
-                } else if (smear.compare("GS") == 0) {
+                } else if (smear.compare("GS") == 0 || smear.compare("gaussian_spline") == 0) {
                     smearing_t = nlcglib::smearing_type::GAUSSIAN_SPLINE;
-                } else if (smear.compare("GAUSS") == 0) {
+                } else if (smear.compare("GAUSS") == 0 || smear.compare("gaussian") == 0) {
                     smearing_t = nlcglib::smearing_type::GAUSS;
-                } else if (smear.compare("MP") == 0) {
+                } else if (smear.compare("MP") == 0 || smear.compare("methfesel_paxton") == 0) {
                     smearing_t = nlcglib::smearing_type::METHFESSEL_PAXTON;
-                } else if (smear.compare("COLD") == 0) {
+                } else if (smear.compare("COLD") == 0 || smear.compare("cold") == 0) {
                     smearing_t = nlcglib::smearing_type::COLD;
                 } else {
                     RTE_THROW("invalid smearing type given: " + smear);
@@ -6775,17 +6775,6 @@ sirius_create_context_from_json_commworld(void** handler__, char const* fname__,
 }
 
 void
-sirius_create_empty_context(int fcomm__, void** handler__, int* error_code__)
-{
-    call_sirius(
-            [&]() {
-                auto& comm   = mpi::Communicator::map_fcomm(fcomm__);
-                *handler__ = new any_ptr(new Simulation_context(comm));
-            },
-            error_code__);
-}
-
-void
 sirius_get_num_atoms(void* const* handler__, int* num_atoms__, int* error_code__)
 {
    call_sirius(
@@ -6797,8 +6786,8 @@ sirius_get_num_atoms(void* const* handler__, int* num_atoms__, int* error_code__
 }
 
 void
-sirius_get_kp_info_from_ctx(void* const* handler__, int* k_grid__, int* k_shift__, bool* use_symmetry__,
-                            int* error_code__)
+sirius_get_kp_params_from_ctx(void* const* handler__, int* k_grid__, int* k_shift__, bool* use_symmetry__,
+                              int* error_code__)
 {
    call_sirius(
             [&]() {
@@ -6825,12 +6814,44 @@ sirius_get_kp_info_from_ctx(void* const* handler__, int* k_grid__, int* k_shift_
 }
 
 void
-sirius_print_gs_info(void* const* handler__, int* error_code__)
+sirius_get_scf_params_from_ctx(void* const* handler__, double* density_tol__, double* energy_tol__,
+                               double* iter_solver_tol__, int* max_niter, int* error_code__)
 {
-    call_sirius(
+   call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
-                gs.print_info(gs.ctx().out());
+               
+               auto& sim_ctx = get_sim_ctx(handler__);
+
+               *density_tol__ = sim_ctx.cfg().parameters().density_tol();
+               *energy_tol__ = sim_ctx.cfg().parameters().energy_tol();
+               *iter_solver_tol__ = sim_ctx.cfg().iterative_solver().energy_tolerance();
+               *max_niter = sim_ctx.cfg().parameters().num_dft_iter();
+            },
+            error_code__);
+}
+
+void
+sirius_get_nlcg_params_from_ctx(void* const* handler__, double* temp__, char* smearing__, double* kappa__,
+                                double* tau__, double* tol__, int* maxiter__, int* restart__, 
+                                char* processing_unit__, int* error_code__)
+{
+   call_sirius(
+            [&]() {
+
+               auto& sim_ctx = get_sim_ctx(handler__);
+
+               *temp__ = sim_ctx.cfg().nlcg().T();
+               *kappa__ = sim_ctx.cfg().nlcg().kappa();
+               *tau__ = sim_ctx.cfg().nlcg().tau();
+               *tol__ = sim_ctx.cfg().nlcg().tol();
+               *maxiter__ = sim_ctx.cfg().nlcg().maxiter();
+               *restart__ = sim_ctx.cfg().nlcg().restart();
+
+               auto str = sim_ctx.cfg().parameters().smearing();
+               std::copy(str.c_str(), str.c_str() + str.length() + 1, smearing__);
+
+               str = sim_ctx.cfg().nlcg().processing_unit();
+               std::copy(str.c_str(), str.c_str() + str.length() + 1, processing_unit__);
             },
             error_code__);
 }
