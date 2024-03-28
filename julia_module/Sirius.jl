@@ -213,7 +213,7 @@ function create_ground_state(kps::KpointSetHandler)
    return gs
 end
 
-function find_ground_state(gs::GroundStateHandler, initial_guess::Bool, save_state::Bool,
+function find_ground_state(gs::GroundStateHandler, initial_guess::Bool, save_state::Bool;
                            density_tol::Float64, energy_tol::Float64,
                            iter_solver_tol::Float64, max_niter::Integer)
 
