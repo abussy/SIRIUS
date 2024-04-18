@@ -1,32 +1,36 @@
-using DFTK
-using MKL
+using DFTK                                                                                           
+using MKL                                                                                            
+                                                                                                     
+a = 3.37                                                                                             
+lattice = a * [[0 1 1.];                                                                             
+               [1 0 1.];                                                                             
+               [1 1 0.]]                                                                             
+positions = [ones(3)/8, -ones(3)/8]                                                                  
+                                                                                                     
+#SIRIUS                                                                                              
+C = ElementSirius(:C; fname=("./C_molsim.upf.json"))                                                 
+atoms     = [C, C]                                                                                   
+model = model_PBE(lattice, atoms, positions)                           
+basis_sirius = SiriusBasis(model; Ecut=50, kgrid=[2, 2, 2])                                              
 
-@show "Starting..."
+ρ0 = guess_density(basis_sirius.PWBasis)
+SetSiriusDensity(basis_sirius, ρ0)
+rho_backup = ρ0
 
-ENV["OMP_NUM_THREADS"] = 4 #TODO: does not seem to work
+SiriusSCF(basis_sirius; density_tol=1.0e-8, energy_tol=1.0e-7, max_niter=100)                                 
+@show GetSiriusEnergy(basis_sirius, "total")            
 
-a = 7.260327248
-lattice = a * [[1. 0 0];
-               [0 1. 0];
-               [0 0 1.]]
+#DFTK
+C = ElementPsp(:C; psp=load_psp("./C_molsim.upf"))                                                 
+atoms     = [C, C]                                                                                   
+model = model_PBE(lattice, atoms, positions)                           
+basis_dftk = PlaneWaveBasis(model; Ecut=50, kgrid=[2, 2, 2])                                              
+ρ0 = guess_density(basis_dftk)                                                                   
+#TODO: it seems that rho0 is not necessary, what happens if not provided?
+scfres = self_consistent_field(basis_dftk; ρ=ρ0, tol=1e-8, maxiter=100)
+@show scfres.energies
 
-Sr = ElementSirius(:Sr; fname="sr_lda_v1.uspp.F.UPF.json")
-V  = ElementSirius(:V; fname="v_lda_v1.4.uspp.F.UPF.json")
-O  = ElementSirius(:O, fname="o_lda_v1.2.uspp.F.UPF.json")
+scfres = self_consistent_field(basis_dftk; ρ=rho_backup, tol=1e-8, maxiter=100)
+@show scfres.energies
 
-atoms = [Sr, V, O, O, O]
-positions = [[0.45, 0.5, 0.5], [0.0, 0.1, 0.0], [0.5, 0.0, 0.0], [0.0, 0.53, 0.0], [0.0, 0.0, 0.5]]
-functionals = ["XC_GGA_X_PBE", "XC_GGA_C_PBE"]
-
-model = model_SIRIUS(lattice, atoms, positions, functionals)
-UpdateSiriusParams(model, "control", "verbosity", 1)
-UpdateSiriusParams(model, "parameters", "smearing_width", 0.025)
-UpdateSiriusParams(model, "parameters", "smearing", "fermi_dirac")
-basis = PlaneWaveBasis(model; Ecut=12.0, kgrid=[2, 1, 1])
-
-SiriusSCF(basis)
-@show forces = GetSiriusEnergy(basis, "total")
-@show forces = GetSiriusForces(basis, "total")
-@show stress = GetSiriusStress(basis, "total")
-
-FinalizeSirius(basis)
+#@show rho_backup - ρ0

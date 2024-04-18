@@ -6856,4 +6856,15 @@ sirius_get_nlcg_params_from_ctx(void* const* handler__, double* temp__, char* sm
             error_code__);
 }
 
+void
+sirius_get_fft_local_z_offset(void* const* handler__, int* local_z_offset__, int* error_code__)
+{
+    call_sirius(
+            [&]() {
+                auto& sim_ctx          = get_sim_ctx(handler__);
+                *local_z_offset__ = sim_ctx.spfft<double>().local_z_offset();
+            },
+            error_code__);
+}
+
 } // extern "C"
