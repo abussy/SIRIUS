@@ -3054,6 +3054,7 @@ sirius_get_energy(void* const* handler__, char const* label__, double* energy__,
                         {"paw", [&]() { return potential.PAW_total_energy(density); }},
                         {"fermi", [&]() { return kset.energy_fermi(); }},
                         {"hubbard", [&]() { return sirius::hubbard_energy(density); }},
+                        {"ewald", [&]() { return potential.ewald_energy(); }},
                         {"band-gap", [&]() { return kset.band_gap(); }}};
 
                 if (!func.count(label)) {
@@ -6888,6 +6889,34 @@ sirius_create_hamiltonian(void* const* gs_handler__, void** H0_handler__, int* e
                 gs.potential().generate(gs.density(), gs.ctx().use_symmetry(), transform_to_rg);
                 bool precompute_lapw{true};
                 *H0_handler__ = new any_ptr(new Hamiltonian0<double>(gs.potential(), precompute_lapw));
+            },
+            error_code__);
+}
+
+void sirius_diagonalize_hamiltonian(void* const* gs_handler__, void* const* H0_handler__, 
+                                    double* const iter_solver_tol__, int* const max_steps__, 
+                                    bool* converged__, int* niter__, int* error_code__)
+{
+    call_sirius(
+            [&]() {
+                auto& gs = get_gs(gs_handler__);
+                auto& ks = gs.k_point_set();
+                auto& ctx = gs.ctx();
+                auto& H0 = get_H0(H0_handler__);
+
+                double iter_solver_tol = get_value(iter_solver_tol__);
+                int max_steps = get_value(max_steps__);
+
+                initialize_subspace(ks, H0);
+                auto result = sirius::diagonalize<double, double>(H0, ks, iter_solver_tol, max_steps);
+
+                ks.find_band_occupancies<double>();
+                bool transform_to_rg{true};
+                bool add_core{true};
+                gs.density().generate<double>(ks, ctx.use_symmetry(), add_core, transform_to_rg);
+
+                *converged__ = result.converged;
+                *niter__ = static_cast<int>(result.avg_num_iter);
             },
             error_code__);
 }
