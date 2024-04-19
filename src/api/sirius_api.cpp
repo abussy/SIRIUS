@@ -301,6 +301,15 @@ get_ks(void* const* h)
     return static_cast<any_ptr*>(*h)->get<K_point_set>();
 }
 
+Hamiltonian0<double>&
+get_H0(void* const* h)
+{
+    if (h == nullptr || *h == nullptr) {
+        RTE_THROW("Non-existing Hamiltonian handler");
+    }
+    return static_cast<any_ptr*>(*h)->get<Hamiltonian0<double>>();
+}
+
 /// Index of Rlm in QE in the block of lm coefficients for a given l.
 static inline int
 idx_m_qe(int m__)
@@ -6863,6 +6872,22 @@ sirius_get_fft_local_z_offset(void* const* handler__, int* local_z_offset__, int
             [&]() {
                 auto& sim_ctx          = get_sim_ctx(handler__);
                 *local_z_offset__ = sim_ctx.spfft<double>().local_z_offset();
+            },
+            error_code__);
+}
+
+void
+sirius_create_hamiltonian(void* const* gs_handler__, void** H0_handler__, int* error_code__)
+{
+    call_sirius(
+            [&]() {
+                auto& gs = get_gs(gs_handler__);
+
+                // We assume that the GS density is up to date
+                bool transform_to_rg{true};
+                gs.potential().generate(gs.density(), gs.ctx().use_symmetry(), transform_to_rg);
+                bool precompute_lapw{true};
+                *H0_handler__ = new any_ptr(new Hamiltonian0<double>(gs.potential(), precompute_lapw));
             },
             error_code__);
 }

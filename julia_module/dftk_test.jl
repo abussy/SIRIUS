@@ -14,8 +14,7 @@ model = model_PBE(lattice, atoms, positions)
 basis_sirius = SiriusBasis(model; Ecut=50, kgrid=[2, 2, 2])                                              
 
 ρ0 = guess_density(basis_sirius.PWBasis)
-SetSiriusDensity(basis_sirius, ρ0)
-rho_backup = ρ0
+H0 = SiriusHamiltonian(basis_sirius, ρ0)
 
 SiriusSCF(basis_sirius; density_tol=1.0e-8, energy_tol=1.0e-7, max_niter=100)                                 
 @show GetSiriusEnergy(basis_sirius, "total")            
@@ -29,8 +28,3 @@ basis_dftk = PlaneWaveBasis(model; Ecut=50, kgrid=[2, 2, 2])
 #TODO: it seems that rho0 is not necessary, what happens if not provided?
 scfres = self_consistent_field(basis_dftk; ρ=ρ0, tol=1e-8, maxiter=100)
 @show scfres.energies
-
-scfres = self_consistent_field(basis_dftk; ρ=rho_backup, tol=1e-8, maxiter=100)
-@show scfres.energies
-
-#@show rho_backup - ρ0
