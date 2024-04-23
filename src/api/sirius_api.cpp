@@ -6893,7 +6893,8 @@ sirius_create_hamiltonian(void* const* gs_handler__, void** H0_handler__, int* e
             error_code__);
 }
 
-void sirius_diagonalize_hamiltonian(void* const* gs_handler__, void* const* H0_handler__, 
+void 
+sirius_diagonalize_hamiltonian(void* const* gs_handler__, void* const* H0_handler__, 
                                     double* const iter_solver_tol__, int* const max_steps__, 
                                     bool* converged__, int* niter__, int* error_code__)
 {
@@ -6901,7 +6902,7 @@ void sirius_diagonalize_hamiltonian(void* const* gs_handler__, void* const* H0_h
             [&]() {
                 auto& gs = get_gs(gs_handler__);
                 auto& ks = gs.k_point_set();
-                auto& ctx = gs.ctx();
+                //auto& ctx = gs.ctx();
                 auto& H0 = get_H0(H0_handler__);
 
                 double iter_solver_tol = get_value(iter_solver_tol__);
@@ -6910,13 +6911,35 @@ void sirius_diagonalize_hamiltonian(void* const* gs_handler__, void* const* H0_h
                 initialize_subspace(ks, H0);
                 auto result = sirius::diagonalize<double, double>(H0, ks, iter_solver_tol, max_steps);
 
-                ks.find_band_occupancies<double>();
-                bool transform_to_rg{true};
-                bool add_core{true};
-                gs.density().generate<double>(ks, ctx.use_symmetry(), add_core, transform_to_rg);
-
                 *converged__ = result.converged;
                 *niter__ = static_cast<int>(result.avg_num_iter);
+            },
+            error_code__);
+}
+
+void
+sirius_find_band_occupancies(void* const* ks_handler__, int* error_code__)
+{
+    call_sirius(
+            [&]() {
+                auto& ks = get_ks(ks_handler__);
+                ks.find_band_occupancies<double>();
+            },
+            error_code__);
+}
+
+void
+sirius_set_num_bands(void* const* handler__, int* const num_bands__, int* error_code__)
+{
+    call_sirius(
+            [&]() {
+                auto& sim_ctx = get_sim_ctx(handler__);
+                if (num_bands__ != nullptr) {
+                    sim_ctx.cfg().unlock();
+                    sim_ctx.num_bands(*num_bands__);
+                    sim_ctx.cfg().lock(); //TODO: not sure if that's safe, if not, need to
+                                    //      limit SIRIUS usage to fixed occupation
+                }
             },
             error_code__);
 }
