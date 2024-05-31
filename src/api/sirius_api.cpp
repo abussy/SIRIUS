@@ -3287,7 +3287,8 @@ sirius_get_wave_functions(void* const* ks_handler__, double const* vkl__, int co
 
         mdarray<int, 2> gv({3, *num_gvec_loc__}, const_cast<int*>(gvec_loc__));
 
-        /* go in the order of host code */
+        /* go in the order of 
+               host code */
         for (int ig = 0; ig < *num_gvec_loc__; ig++) {
             ///* G vector of host code */
             // auto gvc = dot(kset.ctx().unit_cell().reciprocal_lattice_vectors(),
@@ -6909,7 +6910,7 @@ sirius_diagonalize_hamiltonian(void* const* gs_handler__, void* const* H0_handle
                 int max_steps = get_value(max_steps__);
 
                 initialize_subspace(ks, H0);
-                auto result = sirius::diagonalize<double, double>(H0, ks, iter_solver_tol, max_steps);
+                auto result = sirius::diagonalize<double, double>(H0, ks, iter_solver_tol, max_steps); 
 
                 *converged__ = result.converged;
                 *niter__ = static_cast<int>(result.avg_num_iter);
@@ -6939,6 +6940,85 @@ sirius_set_num_bands(void* const* handler__, int* const num_bands__, int* error_
                     sim_ctx.num_bands(*num_bands__);
                     sim_ctx.cfg().lock(); //TODO: not sure if that's safe, if not, need to
                                     //      limit SIRIUS usage to fixed occupation
+                }
+            },
+            error_code__);
+}
+
+void
+sirius_fft_transform(void* const* handler__, char const* label__, int* direction__, int* error_code__)
+{
+    call_sirius(
+            [&]() {
+                auto& gs = get_gs(handler__);
+                std::string label(label__);
+                std::map<std::string, Periodic_function<double>*> func_map = {
+                        {"rho", &gs.density().component(0)},         {"magz", &gs.density().component(1)},
+                        {"magx", &gs.density().component(2)},        {"magy", &gs.density().component(3)},
+                        {"veff", &gs.potential().component(0)},      {"bz", &gs.potential().component(1)},
+                        {"bx", &gs.potential().component(2)},        {"by", &gs.potential().component(3)},
+                        {"vha", &gs.potential().hartree_potential()}};
+
+                if (!func_map.count(label)) {
+                    RTE_THROW("wrong label (" + label + ") for the periodic function");
+                }
+
+                int direction     = get_value(direction__);
+
+                if (direction != 1 && direction != -1) {
+                    RTE_THROW("FFT direction can only be 1 or -1");
+                }
+
+                func_map[label]->rg().fft_transform(direction);
+            },
+            error_code__);
+}
+
+void
+sirius_get_psi(void* const* ks_handler__, int* ik__, int* ispin__, std::complex<double>* psi__, 
+               int* error_code__)
+{
+    call_sirius(
+            [&]() {
+                auto& ks = get_ks(ks_handler__);
+                int ik = get_value(ik__) - 1;
+                int ispin = get_value(ispin__) -1 ;
+                auto kp   = ks.get<double>(ik);
+
+                //std::complex<double>* psi__ = kp->spinor_wave_functions().
+                //                                  pw_coeffs(wf::spin_index(ispin)).
+                //                                  at(memory_t::host);
+
+                //TEST with ugly pointer arithmetic
+                auto& ctx = ks.ctx();
+                int ngk = kp->num_gkvec();
+
+                for (int igk = 0; igk<ngk; igk++){
+                  for (int ib = 0; ib<ctx.num_bands(); ib++){
+                    *(psi__+ ctx.num_bands()*igk + ib) = kp->spinor_wave_functions().
+                                    pw_coeffs(igk, wf::spin_index(ispin), wf::band_index(ib));
+                  }
+                }
+
+            },
+            error_code__);
+}
+
+void
+sirius_get_gkvec(void* const* ks_handler__, int* ik__, double* gvec__, int* error_code__)
+{
+    call_sirius(
+            [&]() {
+                auto& ks = get_ks(ks_handler__);
+                int ik = get_value(ik__) - 1;
+                auto kp   = ks.get<double>(ik);
+                int ngk = kp->num_gkvec();
+                auto& gkvec =  kp->gkvec();
+
+                for (int igk = 0; igk<ngk; igk++){
+                  for (int i = 0; i<3; i++){
+                    *(gvec__+ 3*igk + i) = gkvec.gkvec(gvec_index_t::global(igk))[i];
+                  }
                 }
             },
             error_code__);
