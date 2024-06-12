@@ -197,6 +197,18 @@ class config_t
             }
             dict_["/settings/fft_grid_size"_json_pointer] = fft_grid_size__;
         }
+        /// Cutoff radius for pseudopotential radial grid integration
+        inline auto pseudo_grid_cutoff() const
+        {
+            return dict_.at("/settings/pseudo_grid_cutoff"_json_pointer).get<double>();
+        }
+        inline auto pseudo_grid_cutoff(double pseudo_grid_cutoff__)
+        {
+            if (dict_.contains("locked")) {
+                throw std::runtime_error(locked_msg);
+            }
+            dict_["/settings/pseudo_grid_cutoff"_json_pointer] = pseudo_grid_cutoff__;
+        }
         /// Default radial grid for LAPW species.
         inline auto radial_grid() const
         {
