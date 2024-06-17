@@ -4103,8 +4103,8 @@ sirius_get_step_function:
 */
 void
 sirius_get_step_function(void* const* handler__, std::complex<double>* cfunig__, double* cfunrg__, int* num_rg_points__,
-                         int* error_code__) // TODO: generalise with get_periodic_function
-{
+                         int* error_code__)
+{   // TODO: generalise with get_periodic_function
     call_sirius(
             [&]() {
                 auto& sim_ctx = get_sim_ctx(handler__);
