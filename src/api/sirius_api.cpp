@@ -344,6 +344,12 @@ phase_Rlm_QE(Atom_type const& type__, int xi__)
     return (type__.indexb(xi__).m < 0 && (-type__.indexb(xi__).m) % 2 == 0) ? -1 : 1;
 }
 
+// Naming convention for the handlers:
+// - ctx: handler__
+// - gs:  gs_handler__
+// - ks:  ks_handler__
+// - H0:  H0_handler__
+
 extern "C" {
 
 
@@ -1380,7 +1386,7 @@ sirius_set_periodic_function_ptr(void* const* handler__, char const* label__, do
 sirius_set_periodic_function:
   doc: Set values of the periodic function.
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: Handler of the DFT ground state object.
@@ -1431,13 +1437,13 @@ sirius_set_periodic_function:
 @api end
 */
 void
-sirius_set_periodic_function(void* const* handler__, char const* label__, double* f_mt__, int const* lmmax__,
+sirius_set_periodic_function(void* const* gs_handler__, char const* label__, double* f_mt__, int const* lmmax__,
                              int const* nrmtmax__, int const* num_atoms__, double* f_rg__, int const* size_x__,
                              int const* size_y__, int const* size_z__, int const* offset_z__, int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
                 std::string label(label__);
                 std::map<std::string, Periodic_function<double>*> func_map = {
                         {"rho", &gs.density().component(0)},         {"magz", &gs.density().component(1)},
@@ -1475,7 +1481,7 @@ sirius_set_periodic_function(void* const* handler__, char const* label__, double
 sirius_get_periodic_function:
   doc: Get values of the periodic function.
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: Handler of the DFT ground state object.
@@ -1526,13 +1532,13 @@ sirius_get_periodic_function:
 @api end
 */
 void
-sirius_get_periodic_function(void* const* handler__, char const* label__, double* f_mt__, int const* lmmax__,
+sirius_get_periodic_function(void* const* gs_handler__, char const* label__, double* f_mt__, int const* lmmax__,
                              int const* nrmtmax__, int const* num_atoms__, double* f_rg__, int const* size_x__,
                              int const* size_y__, int const* size_z__, int const* offset_z__, int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
                 std::string label(label__);
                 std::map<std::string, Periodic_function<double>*> func_map = {
                         {"rho", &gs.density().component(0)},          {"magz", &gs.density().component(1)},
@@ -1892,11 +1898,11 @@ sirius_update_ground_state:
 @api end
 */
 void
-sirius_update_ground_state(void** handler__, int* error_code__)
+sirius_update_ground_state(void** gs_handler__, int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
                 gs.update();
             },
             error_code__);
@@ -2442,7 +2448,7 @@ sirius_set_atom_position(void* const* handler__, int const* ia__, double const* 
 sirius_set_pw_coeffs:
   doc: Set plane-wave coefficients of a periodic function.
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: Ground state handler.
@@ -2477,13 +2483,13 @@ sirius_set_pw_coeffs:
 @api end
 */
 void
-sirius_set_pw_coeffs(void* const* handler__, char const* label__, std::complex<double> const* pw_coeffs__,
+sirius_set_pw_coeffs(void* const* gs_handler__, char const* label__, std::complex<double> const* pw_coeffs__,
                      bool const* transform_to_rg__, int const* ngv__, int* gvl__, int const* comm__, int* error_code__)
 {
     PROFILE("sirius_api::sirius_set_pw_coeffs");
     call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
 
                 std::string label(label__);
 
@@ -2569,7 +2575,7 @@ sirius_set_pw_coeffs(void* const* handler__, char const* label__, std::complex<d
 sirius_get_pw_coeffs:
   doc: Get plane-wave coefficients of a periodic function.
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: Ground state handler.
@@ -2600,14 +2606,14 @@ sirius_get_pw_coeffs:
 @api end
 */
 void
-sirius_get_pw_coeffs(void* const* handler__, char const* label__, std::complex<double>* pw_coeffs__, int const* ngv__,
+sirius_get_pw_coeffs(void* const* gs_handler__, char const* label__, std::complex<double>* pw_coeffs__, int const* ngv__,
                      int* gvl__, int const* comm__, int* error_code__)
 {
     PROFILE("sirius_api::sirius_get_pw_coeffs");
 
     call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
 
                 std::string label(label__);
                 if (gs.ctx().full_potential()) {
@@ -2778,7 +2784,7 @@ sirius_find_eigen_states(void* const* gs_handler__, void* const* ks_handler__, b
 sirius_generate_initial_density:
   doc: Generate initial density.
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: Ground state handler.
@@ -2789,11 +2795,11 @@ sirius_generate_initial_density:
 @api end
 */
 void
-sirius_generate_initial_density(void* const* handler__, int* error_code__)
+sirius_generate_initial_density(void* const* gs_handler__, int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
                 gs.density().initial_density();
             },
             error_code__);
@@ -2804,7 +2810,7 @@ sirius_generate_initial_density(void* const* handler__, int* error_code__)
 sirius_generate_effective_potential:
   doc: Generate effective potential and magnetic field.
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: Ground state handler.
@@ -2815,11 +2821,11 @@ sirius_generate_effective_potential:
 @api end
 */
 void
-sirius_generate_effective_potential(void* const* handler__, int* error_code__)
+sirius_generate_effective_potential(void* const* gs_handler__, int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
                 gs.potential().generate(gs.density(), gs.ctx().use_symmetry(), false);
             },
             error_code__);
@@ -3003,7 +3009,7 @@ sirius_get_band_energies(void* const* ks_handler__, int const* ik__, int const* 
 sirius_get_energy:
   doc: Get one of the total energy components.
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: DFT ground state handler.
@@ -3022,11 +3028,11 @@ sirius_get_energy:
 @api end
 */
 void
-sirius_get_energy(void* const* handler__, char const* label__, double* energy__, int* error_code__)
+sirius_get_energy(void* const* gs_handler__, char const* label__, double* energy__, int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
 
                 auto& kset      = gs.k_point_set();
                 auto& ctx       = kset.ctx();
@@ -3071,7 +3077,7 @@ sirius_get_energy(void* const* handler__, char const* label__, double* energy__,
 sirius_get_forces:
   doc: Get one of the total force components.
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: DFT ground state handler.
@@ -3090,13 +3096,13 @@ sirius_get_forces:
 @api end
 */
 void
-sirius_get_forces(void* const* handler__, char const* label__, double* forces__, int* error_code__)
+sirius_get_forces(void* const* gs_handler__, char const* label__, double* forces__, int* error_code__)
 {
     call_sirius(
             [&]() {
                 std::string label(label__);
 
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
 
                 auto get_forces = [&](mdarray<double, 2> const& sirius_forces__) {
                     for (size_t i = 0; i < sirius_forces__.size(); i++) {
@@ -3134,7 +3140,7 @@ sirius_get_forces(void* const* handler__, char const* label__, double* forces__,
 sirius_get_stress_tensor:
   doc: Get one of the stress tensor components.
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: DFT ground state handler.
@@ -3153,13 +3159,13 @@ sirius_get_stress_tensor:
 @api end
 */
 void
-sirius_get_stress_tensor(void* const* handler__, char const* label__, double* stress_tensor__, int* error_code__)
+sirius_get_stress_tensor(void* const* gs_handler__, char const* label__, double* stress_tensor__, int* error_code__)
 {
     call_sirius(
             [&]() {
                 std::string label(label__);
 
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
 
                 auto& stress_tensor = gs.stress();
 
@@ -3622,7 +3628,7 @@ sirius_set_atom_type_configuration(void* const* handler__, char const* label__, 
 sirius_generate_coulomb_potential:
   doc: Generate Coulomb potential by solving Poisson equation
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: DFT ground state handler
@@ -3637,11 +3643,11 @@ sirius_generate_coulomb_potential:
 @api end
 */
 void
-sirius_generate_coulomb_potential(void* const* handler__, double* vh_el__, int* error_code__)
+sirius_generate_coulomb_potential(void* const* gs_handler__, double* vh_el__, int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
 
                 gs.density().rho().rg().fft_transform(-1);
                 gs.potential().poisson(gs.density().rho());
@@ -3660,7 +3666,7 @@ sirius_generate_coulomb_potential(void* const* handler__, double* vh_el__, int* 
 sirius_generate_xc_potential:
   doc: Generate XC potential using LibXC
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: Ground state handler
@@ -3671,11 +3677,11 @@ sirius_generate_xc_potential:
 @api end
 */
 void
-sirius_generate_xc_potential(void* const* handler__, int* error_code__)
+sirius_generate_xc_potential(void* const* gs_handler__, int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
                 gs.potential().xc(gs.density());
             },
             error_code__);
@@ -4499,7 +4505,7 @@ sirius_set_equivalent_atoms(void* const* handler__, int* equivalent_atoms__, int
 sirius_update_atomic_potential:
   doc: Set the new spherical potential.
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: Ground state handler.
@@ -4510,11 +4516,11 @@ sirius_update_atomic_potential:
 @api end
 */
 void
-sirius_update_atomic_potential(void* const* handler__, int* error_code__)
+sirius_update_atomic_potential(void* const* gs_handler__, int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
                 gs.potential().update_atomic_potential();
             },
             error_code__);
@@ -4962,7 +4968,7 @@ sirius_dump_runtime_setup(void* const* handler__, char* filename__, int* error_c
 sirius_get_fv_eigen_vectors:
   doc: Get the first-variational eigen vectors
   arguments:
-    handler:
+    ks_handler:
       type: ks_handler
       attr: in, required
       doc: K-point set handler
@@ -4989,12 +4995,12 @@ sirius_get_fv_eigen_vectors:
 @api end
 */
 void
-sirius_get_fv_eigen_vectors(void* const* handler__, int const* ik__, std::complex<double>* fv_evec__, int const* ld__,
+sirius_get_fv_eigen_vectors(void* const* ks_handler__, int const* ik__, std::complex<double>* fv_evec__, int const* ld__,
                             int const* num_fv_states__, int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& ks = get_ks(handler__);
+                auto& ks = get_ks(ks_handler__);
                 mdarray<std::complex<double>, 2> fv_evec({*ld__, *num_fv_states__}, fv_evec__);
                 int ik = *ik__ - 1;
                 ks.get<double>(ik)->get_fv_eigen_vectors(fv_evec);
@@ -5007,7 +5013,7 @@ sirius_get_fv_eigen_vectors(void* const* handler__, int const* ik__, std::comple
 sirius_get_fv_eigen_values:
   doc: Get the first-variational eigen values
   arguments:
-    handler:
+    ks_handler:
       type: ks_handler
       attr: in, required
       doc: K-point set handler
@@ -5030,12 +5036,12 @@ sirius_get_fv_eigen_values:
 @api end
 */
 void
-sirius_get_fv_eigen_values(void* const* handler__, int const* ik__, double* fv_eval__, int const* num_fv_states__,
+sirius_get_fv_eigen_values(void* const* ks_handler__, int const* ik__, double* fv_eval__, int const* num_fv_states__,
                            int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& ks = get_ks(handler__);
+                auto& ks = get_ks(ks_handler__);
                 if (*num_fv_states__ != ks.ctx().num_fv_states()) {
                     RTE_THROW("wrong number of first-variational states");
                 }
@@ -5052,7 +5058,7 @@ sirius_get_fv_eigen_values(void* const* handler__, int const* ik__, double* fv_e
 sirius_get_sv_eigen_vectors:
   doc: Get the second-variational eigen vectors
   arguments:
-    handler:
+    ks_handler:
       type: ks_handler
       attr: in, required
       doc: K-point set handler
@@ -5075,12 +5081,12 @@ sirius_get_sv_eigen_vectors:
 @api end
 */
 void
-sirius_get_sv_eigen_vectors(void* const* handler__, int const* ik__, std::complex<double>* sv_evec__,
+sirius_get_sv_eigen_vectors(void* const* ks_handler__, int const* ik__, std::complex<double>* sv_evec__,
                             int const* num_bands__, int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& ks = get_ks(handler__);
+                auto& ks = get_ks(ks_handler__);
                 mdarray<std::complex<double>, 2> sv_evec({*num_bands__, *num_bands__}, sv_evec__);
                 int ik = *ik__ - 1;
                 ks.get<double>(ik)->get_sv_eigen_vectors(sv_evec);
@@ -5093,7 +5099,7 @@ sirius_get_sv_eigen_vectors(void* const* handler__, int const* ik__, std::comple
 sirius_set_rg_values:
   doc: Set the values of the function on the regular grid.
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: DFT ground state handler.
@@ -5132,7 +5138,7 @@ sirius_set_rg_values:
 @api end
 */
 void
-sirius_set_rg_values(void* const* handler__, char const* label__, int const* grid_dims__, int const* local_box_origin__,
+sirius_set_rg_values(void* const* gs_handler__, char const* label__, int const* grid_dims__, int const* local_box_origin__,
                      int const* local_box_size__, int const* fcomm__, double const* values__,
                      bool const* transform_to_pw__, int* error_code__)
 {
@@ -5140,7 +5146,7 @@ sirius_set_rg_values(void* const* handler__, char const* label__, int const* gri
 
     call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
 
                 std::string label(label__);
 
@@ -5227,7 +5233,7 @@ sirius_set_rg_values(void* const* handler__, char const* label__, int const* gri
 sirius_get_rg_values:
   doc: Get the values of the function on the regular grid.
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: DFT ground state handler.
@@ -5266,7 +5272,7 @@ sirius_get_rg_values:
 @api end
 */
 void
-sirius_get_rg_values(void* const* handler__, char const* label__, int const* grid_dims__, int const* local_box_origin__,
+sirius_get_rg_values(void* const* gs_handler__, char const* label__, int const* grid_dims__, int const* local_box_origin__,
                      int const* local_box_size__, int const* fcomm__, double* values__, bool const* transform_to_rg__,
                      int* error_code__)
 {
@@ -5274,7 +5280,7 @@ sirius_get_rg_values(void* const* handler__, char const* label__, int const* gri
 
     call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
 
                 std::string label(label__);
 
@@ -5359,7 +5365,7 @@ sirius_get_rg_values(void* const* handler__, char const* label__, int const* gri
 sirius_get_total_magnetization:
   doc: Get the total magnetization of the system.
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: DFT ground state handler.
@@ -5374,11 +5380,11 @@ sirius_get_total_magnetization:
 @api end
 */
 void
-sirius_get_total_magnetization(void* const* handler__, double* mag__, int* error_code__)
+sirius_get_total_magnetization(void* const* gs_handler__, double* mag__, int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
 
                 mdarray<double, 1> total_mag({3}, mag__);
                 total_mag.zero();
@@ -5401,7 +5407,7 @@ sirius_get_total_magnetization(void* const* handler__, double* mag__, int* error
 sirius_get_num_kpoints:
   doc: Get the total number of kpoints
   arguments:
-    handler:
+    ks_handler:
       type: ks_handler
       attr: in, required
       doc: Kpoint set handler
@@ -5417,11 +5423,11 @@ sirius_get_num_kpoints:
 */
 
 void
-sirius_get_num_kpoints(void* const* handler__, int* num_kpoints__, int* error_code__)
+sirius_get_num_kpoints(void* const* ks_handler__, int* num_kpoints__, int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& ks       = get_ks(handler__);
+                auto& ks       = get_ks(ks_handler__);
                 *num_kpoints__ = ks.num_kpoints();
             },
             error_code__);
@@ -5432,7 +5438,7 @@ sirius_get_num_kpoints(void* const* handler__, int* num_kpoints__, int* error_co
 sirius_get_kpoint_properties:
   doc: Get the kpoint properties
   arguments:
-    handler:
+    ks_handler:
       type: ks_handler
       attr: in, required
       doc: Kpoint set handler
@@ -5455,12 +5461,12 @@ sirius_get_kpoint_properties:
 @api end
 */
 void
-sirius_get_kpoint_properties(void* const* handler__, int const* ik__, double* weight__, double* coordinates__,
+sirius_get_kpoint_properties(void* const* ks_handler__, int const* ik__, double* weight__, double* coordinates__,
                              int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& ks  = get_ks(handler__);
+                auto& ks  = get_ks(ks_handler__);
                 int ik    = *ik__ - 1;
                 *weight__ = ks.get<double>(ik)->weight();
 
@@ -5542,7 +5548,7 @@ sirius_set_callback_function(void* const* handler__, char const* label__, void (
 sirius_nlcg:
   doc: Robust wave function optimizer.
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: Ground state handler.
@@ -5558,13 +5564,13 @@ sirius_nlcg:
 */
 
 void
-sirius_nlcg(void* const* handler__, void* const* ks_handler__, int* error_code__)
+sirius_nlcg(void* const* gs_handler__, void* const* ks_handler__, int* error_code__)
 {
     call_sirius(
             [&]() {
 #if defined(SIRIUS_NLCGLIB)
                 // call nlcg solver
-                auto& gs        = get_gs(handler__);
+                auto& gs        = get_gs(gs_handler__);
                 auto& potential = gs.potential();
                 auto& density   = gs.density();
 
@@ -5620,7 +5626,7 @@ sirius_nlcg(void* const* handler__, void* const* ks_handler__, int* error_code__
 sirius_nlcg_params:
   doc: Robust wave function optimizer
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: Ground state handler.
@@ -5673,7 +5679,7 @@ sirius_nlcg_params:
 */
 
 void
-sirius_nlcg_params(void* const* handler__, void* const* ks_handler__, double const* temp__, char const* smearing__,
+sirius_nlcg_params(void* const* gs_handler__, void* const* ks_handler__, double const* temp__, char const* smearing__,
                    double const* kappa__, double const* tau__, double const* tol__, int const* maxiter__,
                    int const* restart__, char const* processing_unit__, bool* converged__, int* error_code__)
 {
@@ -5682,7 +5688,7 @@ sirius_nlcg_params(void* const* handler__, void* const* ks_handler__, double con
 #if defined(SIRIUS_NLCGLIB)
                 PROFILE("sirius::nlcglib");
                 // call nlcg solver
-                auto& gs        = get_gs(handler__);
+                auto& gs        = get_gs(gs_handler__);
                 auto& potential = gs.potential();
                 auto& density   = gs.density();
 
@@ -6002,7 +6008,7 @@ sirius_add_hubbard_atom_constraint(void* const* handler__, int* const atom_id__,
 sirius_create_H0:
   doc: Generate H0.
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: Ground state handler.
@@ -6013,11 +6019,11 @@ sirius_create_H0:
 @api end
 */
 void
-sirius_create_H0(void* const* handler__, int* error_code__)
+sirius_create_H0(void* const* gs_handler__, int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
                 gs.create_H0();
             },
             error_code__);
@@ -6028,7 +6034,7 @@ sirius_create_H0(void* const* handler__, int* error_code__)
 sirius_linear_solver:
   doc: Interface to linear solver.
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: DFT ground state handler.
@@ -6099,7 +6105,7 @@ sirius_linear_solver:
 @api end
 */
 void
-sirius_linear_solver(void* const* handler__, double const* vkq__, int const* num_gvec_kq_loc__,
+sirius_linear_solver(void* const* gs_handler__, double const* vkq__, int const* num_gvec_kq_loc__,
                      int const* gvec_kq_loc__, std::complex<double>* dpsi__, std::complex<double>* psi__,
                      double* eigvals__, std::complex<double>* dvpsi__, int const* ld__, int const* num_spin_comp__,
                      double const* alpha_pv__, int const* spin__, int const* nbnd_occ_k__, int const* nbnd_occ_kq__,
@@ -6119,7 +6125,7 @@ sirius_linear_solver(void* const* handler__, double const* vkq__, int const* num
                     return;
                 }
 
-                auto& gs   = get_gs(handler__);
+                auto& gs   = get_gs(gs_handler__);
                 auto& sctx = gs.ctx();
 
                 wf::spin_range sr(0);
@@ -6280,7 +6286,7 @@ sirius_linear_solver(void* const* handler__, double const* vkq__, int const* num
 sirius_generate_rhoaug_q:
   doc: Generate augmentation charge in case of complex density (linear response)
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: DFT ground state handler.
@@ -6335,7 +6341,7 @@ sirius_generate_rhoaug_q:
 @api end
 */
 void
-sirius_generate_rhoaug_q(void* const* handler__, int const* iat__, int const* num_atoms__, int const* num_gvec_loc__,
+sirius_generate_rhoaug_q(void* const* gs_handler__, int const* iat__, int const* num_atoms__, int const* num_gvec_loc__,
                          int const* num_spin_comp__, std::complex<double> const* qpw__, int const* ldq__,
                          std::complex<double> const* phase_factors_q__, int const* mill__,
                          std::complex<double> const* dens_mtrx__, int const* ldd__, std::complex<double>* rho_aug__,
@@ -6345,7 +6351,7 @@ sirius_generate_rhoaug_q(void* const* handler__, int const* iat__, int const* nu
     PROFILE("sirius_api::sirius_generate_rhoaug_q");
     call_sirius(
             [&]() {
-                auto& gs   = get_gs(handler__);
+                auto& gs   = get_gs(gs_handler__);
                 auto& sctx = gs.ctx();
                 /* index of atom type */
                 int iat           = *iat__ - 1;
@@ -6406,7 +6412,7 @@ sirius_generate_rhoaug_q(void* const* handler__, int const* iat__, int const* nu
 sirius_generate_d_operator_matrix:
   doc: Generate D-operator matrix.
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: Ground state handler.
@@ -6417,11 +6423,11 @@ sirius_generate_d_operator_matrix:
 @api end
 */
 void
-sirius_generate_d_operator_matrix(void* const* handler__, int* error_code__)
+sirius_generate_d_operator_matrix(void* const* gs_handler__, int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
                 gs.potential().generate_D_operator_matrix();
             },
             error_code__);
@@ -6447,11 +6453,11 @@ sirius_save_state:
 @api end
 */
 void
-sirius_save_state(void** handler__, const char* file_name__, int* error_code__)
+sirius_save_state(void** gs_handler__, const char* file_name__, int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
                 std::string file_name(file_name__);
                 gs.ctx().create_storage_file(file_name);
                 gs.potential().save(file_name);
@@ -6465,7 +6471,7 @@ sirius_save_state(void** handler__, const char* file_name__, int* error_code__)
 sirius_load_state:
   doc: Save DFT ground state (density and potential)
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: Ground-state handler.
@@ -6480,11 +6486,11 @@ sirius_load_state:
 @api end
 */
 void
-sirius_load_state(void** handler__, const char* file_name__, int* error_code__)
+sirius_load_state(void** gs_handler__, const char* file_name__, int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
                 std::string file_name(file_name__);
                 gs.potential().load(file_name);
                 gs.density().load(file_name);
@@ -6497,7 +6503,7 @@ sirius_load_state(void** handler__, const char* file_name__, int* error_code__)
 sirius_set_density_matrix:
   doc: Set density matrix.
   arguments:
-    handler:
+    gs_handler:
       type: gs_handler
       attr: in, required
       doc: Ground-state handler.
@@ -6520,12 +6526,12 @@ sirius_set_density_matrix:
 @api end
 */
 void
-sirius_set_density_matrix(void** handler__, int const* ia__, std::complex<double>* dm__, int const* ld__,
+sirius_set_density_matrix(void** gs_handler__, int const* ia__, std::complex<double>* dm__, int const* ld__,
                           int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
                 mdarray<std::complex<double>, 3> dm({*ld__, *ld__, 3}, dm__);
                 int ia       = *ia__ - 1;
                 auto& atom   = gs.ctx().unit_cell().atom(ia);
@@ -6786,11 +6792,11 @@ sirius_create_context_from_json_commworld(void** handler__, char const* fname__,
 }
 
 void
-sirius_get_num_atoms(void* const* handler__, int* num_atoms__, int* error_code__)
+sirius_get_num_atoms(void* const* gs_handler__, int* num_atoms__, int* error_code__)
 {
    call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
                 *num_atoms__ = gs.ctx().unit_cell().num_atoms();
             },
             error_code__);
@@ -6946,11 +6952,11 @@ sirius_set_num_bands(void* const* handler__, int* const num_bands__, int* error_
 }
 
 void
-sirius_fft_transform(void* const* handler__, char const* label__, int* direction__, int* error_code__)
+sirius_fft_transform(void* const* gs_handler__, char const* label__, int* direction__, int* error_code__)
 {
     call_sirius(
             [&]() {
-                auto& gs = get_gs(handler__);
+                auto& gs = get_gs(gs_handler__);
                 std::string label(label__);
                 std::map<std::string, Periodic_function<double>*> func_map = {
                         {"rho", &gs.density().component(0)},         {"magz", &gs.density().component(1)},
