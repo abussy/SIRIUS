@@ -344,6 +344,7 @@ phase_Rlm_QE(Atom_type const& type__, int xi__)
     return (type__.indexb(xi__).m < 0 && (-type__.indexb(xi__).m) % 2 == 0) ? -1 : 1;
 }
 
+// TODO: might not be necessary
 // Naming convention for the handlers:
 // - ctx: handler__
 // - gs:  gs_handler__
@@ -6757,7 +6758,21 @@ sirius_get_revision(int* version)
     *version = revision();
 }
 
-// The following three functions are there to be used in the Julia bindings
+/*
+ @api begin
+ sirius_is_initialized:
+   doc: Checks if the library is initialized.
+   arguments:
+     status:
+      type: bool
+      attr: out, required
+      doc: Status of the library (true if initialized).
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+ @api end
+ */
 void
 sirius_is_initialized(bool* status__, int* error_code__)
 {
@@ -6768,6 +6783,29 @@ sirius_is_initialized(bool* status__, int* error_code__)
             error_code__);
 }
 
+/*
+@api begin
+sirius_create_context_from_json:
+  doc: Create context of the simulation, from a JSON file or string.
+  arguments:
+    fcomm:
+      type: int
+      attr: in, required, value
+      doc: Entire communicator of the simulation.
+    handler:
+      type: ctx_handler
+      attr: out, required
+      doc: New empty simulation context.
+    fname:
+      type: string
+      attr: in, required
+      doc: file name or JSON string.
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+@api end
+*/
 void
 sirius_create_context_from_json(int fcomm__, void** handler__, char const* fname__, int* error_code__)
 {
@@ -6780,17 +6818,25 @@ sirius_create_context_from_json(int fcomm__, void** handler__, char const* fname
 
 }
 
-void
-sirius_create_context_from_json_commworld(void** handler__, char const* fname__, int* error_code__)
-{
-   call_sirius(
-            [&]() {
-                *handler__ = new any_ptr(new Simulation_context(std::string(fname__)));
-            },
-            error_code__);
-
-}
-
+/*
+@api begin
+sirius_get_num_atoms:
+  doc: Get the number of atoms in the simulation
+  arguments:
+    gs_handler:
+      type: gs_handler
+      attr: in, required
+      doc: Ground-state handler.
+    num_atoms:
+      type: int
+      attr: out, required
+      doc: Number of atoms.
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+@api end
+*/
 void
 sirius_get_num_atoms(void* const* gs_handler__, int* num_atoms__, int* error_code__)
 {
@@ -6802,6 +6848,33 @@ sirius_get_num_atoms(void* const* gs_handler__, int* num_atoms__, int* error_cod
             error_code__);
 }
 
+/*
+@api begin
+sirius_get_kp_params_from_ctx:
+  doc: Get the k-point parameters from the simulation context.
+  arguments:
+    handler:
+      type: ctx_handler
+      attr: in, required
+      doc: Simulation context handler.
+    k_grid:
+      type: int
+      attr: out, required, dimension(3)
+      doc: dimensions of the k points grid.
+    k_shift:
+      type: int
+      attr: out, required, dimension(3)
+      doc: k point shifts.
+    use_symmetry:
+      type: bool
+      attr: out, required
+      doc: If .true. k-set will be generated using symmetries.
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+@api end
+*/
 void
 sirius_get_kp_params_from_ctx(void* const* handler__, int* k_grid__, int* k_shift__, bool* use_symmetry__,
                               int* error_code__)
@@ -6830,6 +6903,37 @@ sirius_get_kp_params_from_ctx(void* const* handler__, int* k_grid__, int* k_shif
             error_code__);
 }
 
+/*
+@api begin
+sirius_get_scf_params_from_ctx:
+  doc: Get the SCF parameters from the simulation context.
+  arguments:
+    handler:
+      type: ctx_handler
+      attr: in, required
+      doc: Simulation context handler.
+    density_tol__:
+      type: double
+      attr: out, required
+      doc: Tolerance on RMS in density.
+    energy_tol__:
+      type: double
+      attr: out, require
+      doc: Tolerance in total energy difference.
+    iter_solver_tol:
+      type: double
+      attr: out, required
+      doc: Initial tolerance of the iterative solver.
+    max_niter:
+      type: int
+      attr: out, required
+      doc: Maximum number of SCF iterations.
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+@api end
+*/
 void
 sirius_get_scf_params_from_ctx(void* const* handler__, double* density_tol__, double* energy_tol__,
                                double* iter_solver_tol__, int* max_niter, int* error_code__)
@@ -6847,43 +6951,25 @@ sirius_get_scf_params_from_ctx(void* const* handler__, double* density_tol__, do
             error_code__);
 }
 
-void
-sirius_get_nlcg_params_from_ctx(void* const* handler__, double* temp__, char* smearing__, double* kappa__,
-                                double* tau__, double* tol__, int* maxiter__, int* restart__, 
-                                char* processing_unit__, int* error_code__)
-{
-   call_sirius(
-            [&]() {
-
-               auto& sim_ctx = get_sim_ctx(handler__);
-
-               *temp__ = sim_ctx.cfg().nlcg().T();
-               *kappa__ = sim_ctx.cfg().nlcg().kappa();
-               *tau__ = sim_ctx.cfg().nlcg().tau();
-               *tol__ = sim_ctx.cfg().nlcg().tol();
-               *maxiter__ = sim_ctx.cfg().nlcg().maxiter();
-               *restart__ = sim_ctx.cfg().nlcg().restart();
-
-               auto str = sim_ctx.cfg().parameters().smearing();
-               std::copy(str.c_str(), str.c_str() + str.length() + 1, smearing__);
-
-               str = sim_ctx.cfg().nlcg().processing_unit();
-               std::copy(str.c_str(), str.c_str() + str.length() + 1, processing_unit__);
-            },
-            error_code__);
-}
-
-void
-sirius_get_fft_local_z_offset(void* const* handler__, int* local_z_offset__, int* error_code__)
-{
-    call_sirius(
-            [&]() {
-                auto& sim_ctx          = get_sim_ctx(handler__);
-                *local_z_offset__ = sim_ctx.spfft<double>().local_z_offset();
-            },
-            error_code__);
-}
-
+/*
+@api begin
+sirius_create_hamiltonian:
+  doc: Create an Hamiltonian based on the density stored in the gs_handler.
+  arguments:
+    gs_handler:
+      type: gs_handler
+      attr: in, required
+      doc: Ground-state context handler.
+    H0_handler:
+      type: H0_handler
+      attr: out, required
+      doc: The new handler for the Hamiltonian
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+@api end
+*/
 void
 sirius_create_hamiltonian(void* const* gs_handler__, void** H0_handler__, int* error_code__)
 {
@@ -6900,6 +6986,41 @@ sirius_create_hamiltonian(void* const* gs_handler__, void** H0_handler__, int* e
             error_code__);
 }
 
+/*
+@api begin
+sirius_diagonalize_hamiltonian:
+  doc: Diagonalizes the Hamiltonian.
+  arguments:
+    gs_handler:
+      type: gs_handler
+      attr: in, required
+      doc: Ground-state context handler.
+    H0_handler:
+      type: H0_handler
+      attr: in, required
+      doc: Hamiltonian contexct handler.
+    iter_solver_tol:
+      type: double
+      attr: in, required
+      doc: Tolerance for the iterative solver.
+    max_steps:
+      type: int
+      attr: in, required
+      doc: Maximum number of steps for the iterative solver.
+    converged:
+      type: bool
+      attr: out, required
+      doc: Whether the iterative solver converged
+    niter:
+      type: int
+      attr: out, required
+      doc: Number of steps for the solver to converge
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+@api end
+*/
 void 
 sirius_diagonalize_hamiltonian(void* const* gs_handler__, void* const* H0_handler__, 
                                     double* const iter_solver_tol__, int* const max_steps__, 
@@ -6909,7 +7030,6 @@ sirius_diagonalize_hamiltonian(void* const* gs_handler__, void* const* H0_handle
             [&]() {
                 auto& gs = get_gs(gs_handler__);
                 auto& ks = gs.k_point_set();
-                //auto& ctx = gs.ctx();
                 auto& H0 = get_H0(H0_handler__);
 
                 double iter_solver_tol = get_value(iter_solver_tol__);
@@ -6924,6 +7044,21 @@ sirius_diagonalize_hamiltonian(void* const* gs_handler__, void* const* H0_handle
             error_code__);
 }
 
+/*
+@api begin
+sirius_find_band_occupancies:
+  doc: Internally calculate the band occupancies.
+  arguments:
+    ks_handler:
+      type: ks_handler
+      attr: in, required
+      doc: Handler for the k-point set.
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+@api end
+*/
 void
 sirius_find_band_occupancies(void* const* ks_handler__, int* error_code__)
 {
@@ -6935,6 +7070,25 @@ sirius_find_band_occupancies(void* const* ks_handler__, int* error_code__)
             error_code__);
 }
 
+/*
+@api begin
+sirius_set_num_bands:
+  doc: Sets the number of bands in the simulation context.
+  arguments:
+    handler:
+      type: ctx_handler
+      attr: in, required
+      doc: Simulation context handler.
+    num_bands:
+      type: int
+      attr: in, required
+      doc: Number of bands to set.
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+@api end
+*/
 void
 sirius_set_num_bands(void* const* handler__, int* const num_bands__, int* error_code__)
 {
@@ -6951,6 +7105,29 @@ sirius_set_num_bands(void* const* handler__, int* const num_bands__, int* error_
             error_code__);
 }
 
+/*
+@api begin
+sirius_fft_transform:
+  doc: Triggers an internal FFT transform of the given field, in the given direction
+  arguments:
+    gs_handler:
+      type: gs_handler
+      attr: in, required
+      doc: Ground-state handler.
+    label:
+      type: string
+      attr: in, required
+      doc: Which field to FFT transform.
+    direction:
+      type: int
+      attr: in, required
+      doc: FFT transform direction (1 forward, -1, backward)
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+@api end
+*/
 void
 sirius_fft_transform(void* const* gs_handler__, char const* label__, int* direction__, int* error_code__)
 {
@@ -6980,6 +7157,33 @@ sirius_fft_transform(void* const* gs_handler__, char const* label__, int* direct
             error_code__);
 }
 
+/*
+@api begin
+sirius_get_psi:
+  doc: Gets the wave function for a given k-point and spin (all local, no MPI communication).
+  arguments:
+    ks_handler:
+      type: ks_handler
+      attr: in, required
+      doc: Handler for the k-point set.
+    ik:
+      type: int
+      attr: in, required
+      doc: Index of the k-point.
+    ispin:
+      type: int
+      attr: in, required
+      doc: Index of the spin.
+    psi:
+      type: complex
+      attr: in, required, dimension(:)
+      doc: Pointer to the wave function coefficients.
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+@api end
+*/
 void
 sirius_get_psi(void* const* ks_handler__, int* ik__, int* ispin__, std::complex<double>* psi__, 
                int* error_code__)
@@ -6991,11 +7195,7 @@ sirius_get_psi(void* const* ks_handler__, int* ik__, int* ispin__, std::complex<
                 int ispin = get_value(ispin__) -1 ;
                 auto kp   = ks.get<double>(ik);
 
-                //std::complex<double>* psi__ = kp->spinor_wave_functions().
-                //                                  pw_coeffs(wf::spin_index(ispin)).
-                //                                  at(memory_t::host);
-
-                //TEST with ugly pointer arithmetic
+                //TODO: might want to avoid this loop, and get the whole array at once
                 auto& ctx = ks.ctx();
                 int ngk = kp->num_gkvec();
 
@@ -7010,6 +7210,29 @@ sirius_get_psi(void* const* ks_handler__, int* ik__, int* ispin__, std::complex<
             error_code__);
 }
 
+/*
+@api begin
+sirius_get_gkvec:
+  doc: Gets the G+k integer coordinates for a given k-point.
+  arguments:
+    ks_handler:
+      type: ks_handler
+      attr: in, required
+      doc: Handler for the k-point set.
+    ik:
+      type: int
+      attr: in, required
+      doc: Index of the k-point.
+    gvec:
+      type: double
+      attr: in, required, dimension(:)
+      doc: Pointer to the G+k vector coordinates.
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+@api end
+*/
 void
 sirius_get_gkvec(void* const* ks_handler__, int* ik__, double* gvec__, int* error_code__)
 {
@@ -7021,6 +7244,7 @@ sirius_get_gkvec(void* const* ks_handler__, int* ik__, double* gvec__, int* erro
                 int ngk = kp->num_gkvec();
                 auto& gkvec =  kp->gkvec();
 
+                //TODO: might want to avoid this loop, and get the whole array at once
                 for (int igk = 0; igk<ngk; igk++){
                   for (int i = 0; i<3; i++){
                     *(gvec__+ 3*igk + i) = gkvec.gkvec(gvec_index_t::global(igk))[i];

@@ -40,8 +40,20 @@ signatures = []
 for match in matches:
     signatures.append(match.strip().replace("\n{", ";\n\n"))
 
+#We also want to carry over the Fortran API info
+pattern = r'@api begin(.*?)@api end'
+matches = re.findall(pattern, content, re.DOTALL)
+docs = []
+for match in matches:
+    docs.append("/*\n"+match.strip()+"\n*/\n")
+
 with open("sirius_c_headers.h", "w") as myfile:
     myfile.write("#include <stdbool.h>\n")
     myfile.write("#include <complex.h>\n\n")
-    for signature in signatures:
-        myfile.write(signature)
+    for doc in docs:
+        fname = doc.split("\n")[1][:-1]
+        for signature in signatures:
+            if fname in signature:
+                myfile.write(doc)
+                myfile.write(signature)
+                break
