@@ -344,13 +344,6 @@ phase_Rlm_QE(Atom_type const& type__, int xi__)
     return (type__.indexb(xi__).m < 0 && (-type__.indexb(xi__).m) % 2 == 0) ? -1 : 1;
 }
 
-// TODO: might not be necessary
-// Naming convention for the handlers:
-// - ctx: handler__
-// - gs:  gs_handler__
-// - ks:  ks_handler__
-// - H0:  H0_handler__
-
 extern "C" {
 
 

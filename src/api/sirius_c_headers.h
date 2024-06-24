@@ -680,9 +680,9 @@ sirius_set_periodic_function:
       doc: Error code.
 */
 void
-sirius_set_periodic_function_ptr(void* const* handler__, char const* label__, double* f_mt__, int const* lmmax__,
-                                 int const* nrmtmax__, int const* num_atoms__, double* f_rg__, int const* size_x__,
-                                 int const* size_y__, int const* size_z__, int const* offset_z__, int* error_code__);
+sirius_set_periodic_function(void* const* gs_handler__, char const* label__, double* f_mt__, int const* lmmax__,
+                             int const* nrmtmax__, int const* num_atoms__, double* f_rg__, int const* size_x__,
+                             int const* size_y__, int const* size_z__, int const* offset_z__, int* error_code__);
 
 /*
 sirius_get_periodic_function:
@@ -1235,8 +1235,8 @@ sirius_add_atom:
       doc: Error code.
 */
 void
-sirius_add_atom_type(void* const* handler__, char const* label__, char const* fname__, int const* zn__,
-                     char const* symbol__, double const* mass__, bool const* spin_orbit__, int* error_code__);
+sirius_add_atom(void* const* handler__, char const* label__, double const* position__, double const* vector_field__,
+                int* error_code__);
 
 /*
 sirius_set_atom_position:
@@ -2479,7 +2479,8 @@ sirius_option_get:
       doc: Error code.
 */
 void
-sirius_option_get_number_of_sections(int* length__, int* error_code__);
+sirius_option_get(char const* section__, char const* name__, int const* type__, void* data_ptr__,
+                  int const* max_length__, int const* enum_idx__, int* error_code__);
 
 /*
 sirius_option_set:
@@ -3083,10 +3084,14 @@ sirius_linear_solver:
       type: int
       attr: in, required
       doc: Current spin channel.
-    nbnd_occ:
+    nbnd_occ_k:
       type: int
       attr: in, required
-      doc: Number of occupied bands.
+      doc: Number of occupied bands at k.
+    nbnd_occ_kq:
+      type: int
+      attr: in, required
+      doc: Number of occupied bands at k+q.
     tol:
       type: double
       attr: in, optional
@@ -3104,8 +3109,8 @@ void
 sirius_linear_solver(void* const* gs_handler__, double const* vkq__, int const* num_gvec_kq_loc__,
                      int const* gvec_kq_loc__, double complex* dpsi__, double complex* psi__,
                      double* eigvals__, double complex* dvpsi__, int const* ld__, int const* num_spin_comp__,
-                     double const* alpha_pv__, int const* spin__, int const* nbnd_occ__, double const* tol__,
-                     int* niter__, int* error_code__);
+                     double const* alpha_pv__, int const* spin__, int const* nbnd_occ_k__, int const* nbnd_occ_kq__,
+                     double const* tol__, int* niter__, int* error_code__);
 
 /*
 sirius_generate_rhoaug_q:
@@ -3257,8 +3262,111 @@ sirius_set_density_matrix(void** gs_handler__, int const* ia__, double complex* 
                           int* error_code__);
 
 /*
+sirius_set_local_occupation_matrix:
+  doc: Set local occupation matrix of LDA+U+V method.
+  arguments:
+    handler:
+      type: gs_handler
+      attr: in, required
+      doc: Ground-state handler.
+    ia:
+      type: int
+      attr: in, required
+      doc: Index of atom.
+    n:
+      type: int
+      attr: in, required
+      doc: Principal quantum number.
+    l:
+      type: int
+      attr: in, required
+      doc: Orbital quantum number.
+    spin:
+      type: int
+      attr: in, required
+      doc: Spin index.
+    occ_mtrx:
+      type: complex
+      attr: in, required, dimension(ld, ld)
+      doc: Local occupation matrix.
+    ld:
+      type: int
+      attr: in, required
+      doc: Leading dimension of the occupation matrix.
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+*/
+void
+sirius_set_local_occupation_matrix(void** handler__, int const* ia__, int const* n__, int const* l__, int const* spin__,
+                                   double complex* occ_mtrx__, int const* ld__, int* error_code__);
+
+/*
+sirius_set_nonlocal_occupation_matrix:
+  doc: Set nonlocal part of LDA+U+V occupation matrix.
+  arguments:
+    handler:
+      type: gs_handler
+      attr: in, required
+      doc: Ground-state handler.
+    atom_pair:
+      type: int
+      attr: in, required, dimension(2)
+      doc: Index of two atoms in the non-local V correction.
+    n:
+      type: int
+      attr: in, required, dimension(2)
+      doc: Pair of principal quantum numbers.
+    l:
+      type: int
+      attr: in, required, dimension(2)
+      doc: Pair of orbital quantum numbers.
+    spin:
+      type: int
+      attr: in, required
+      doc: Spin index.
+    T:
+      type: int
+      attr: in, required, dimension(3)
+      doc: Translation vector that connects two atoms.
+    occ_mtrx:
+      type: complex
+      attr: in, required, dimension(ld1, ld2)
+      doc: Nonlocal occupation matrix.
+    ld1:
+      type: int
+      attr: in, required
+      doc: Leading dimension of the occupation matrix.
+    ld2:
+      type: int
+      attr: in, required
+      doc: Second dimension of the occupation matrix.
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+*/
+void
+sirius_set_nonlocal_occupation_matrix(void** handler__, int const* atom_pair__, int const* n__, int const* l__,
+                                      int const* spin__, int const* T__, double complex* occ_mtrx__,
+                                      int const* ld1__, int const* ld2__, int* error_code__);
+
+/*
 sirius_get_major_version:
-  doc: major version.
+ doc: major version.
+ arguments:
+   version:
+     type: int
+     attr: out, required
+     doc: version
+*/
+void
+sirius_get_major_version(int* version);
+
+/*
+sirius_get_minor_version:
+  doc: minor version.
   arguments:
     version:
       type: int
@@ -3266,28 +3374,16 @@ sirius_get_major_version:
       doc: version
 */
 void
-sirius_get_major_version(int* version);
-
-/*
-sirius_get_minor_version:
-   doc: minor version.
-   arguments:
-     version:
-       type: int
-       attr: out, required
-       doc: version
-*/
-void
 sirius_get_minor_version(int* version);
 
 /*
 sirius_get_revision:
-   doc: minor version.
-   arguments:
-     version:
-       type: int
-       attr: out, required
-       doc: version
+  doc: minor version.
+  arguments:
+    version:
+      type: int
+      attr: out, required
+      doc: version
 */
 void
 sirius_get_revision(int* version);
@@ -3583,6 +3679,5 @@ sirius_get_gkvec:
       doc: Error code.
 */
 void
-sirius_get_gkvec_arrays(void* const* ks_handler__, int* ik__, int* num_gkvec__, int* gvec_index__, double* gkvec__,
-                        double* gkvec_cart__, double* gkvec_len, double* gkvec_tp__, int* error_code__);
+sirius_get_gkvec(void* const* ks_handler__, int* ik__, double* gvec__, int* error_code__);
 

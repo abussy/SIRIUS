@@ -20,17 +20,6 @@ with open("sirius_api.cpp", "r") as myfile:
 #We want C-style complex types, not C++
 content = content.replace("std::complex<double>", "double complex")
 
-#A check that the handler naming convention is respected:
-#handler for ctx, gs_handler, kp_handler and H0_handerl for the rest
-handlers = {"sim_ctx": "handler__", "ks": "ks_handler__",
-            "gs": "gs_handler__", "H0": "H0_handler__"}
-for prefix, vname in handlers.items():
-    pattern = r'get_{}\([^)]*handler__[^)]*\);*'.format(prefix)
-    matches = re.findall(pattern, content)
-    for match in matches:
-        if not "({});".format(vname) in match:
-            sys.exit("sirius_api.cpp: some handler name does not follow conventions ({}).".format(prefix))
-            
 #A regex that matches all SIRIUS API calls: returns a void,
 #starts with sirius_, and allows for line breaks
 pattern = r'\bvoid\s+(?:\s*\n\s*)?sirius_\w+\s*\([^{]*\{'
@@ -53,7 +42,7 @@ with open("sirius_c_headers.h", "w") as myfile:
     for doc in docs:
         fname = doc.split("\n")[1][:-1]
         for signature in signatures:
-            if fname in signature:
+            if fname+"(" in signature:
                 myfile.write(doc)
                 myfile.write(signature)
                 break
