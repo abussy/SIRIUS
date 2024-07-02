@@ -3681,3 +3681,23 @@ sirius_get_gkvec:
 void
 sirius_get_gkvec(void* const* ks_handler__, int* ik__, double* gvec__, int* error_code__);
 
+/*
+sirius_set_energy_fermi:
+  doc: Sets the SIRIUS Fermi energy.
+  arguments:
+    ks_handler:
+      type: ks_handler
+      attr: in, required
+      doc: Handler for the k-point set.
+    energy_fermi:
+      type: double
+      attr: in, required
+      doc: Fermi energy to be set.
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+*/
+void
+sirius_set_energy_fermi(void* const* ks_handler__, double* energy_fermi__, int* error_code__);
+

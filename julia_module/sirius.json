@@ -1,85 +1,56 @@
 {
     "control" : {
         "processing_unit" : "cpu",
-        "verbosity" : 1,
+        "verbosity" : 2,
         "print_forces" : true,
         "print_stress" : true
     },
 
     "parameters" : {
         "electronic_structure_method" : "pseudopotential",
+        "use_scf_correction" : false,
 
-        "num_fv_states" : 40,
+        "xc_functionals" : ["XC_GGA_X_PBE", "XC_GGA_C_PBE"],
 
-        "xc_functionals" : ["XC_LDA_X", "XC_LDA_C_PZ"],
-
-        "smearing_width" : 0.01,
+        "smearing_width" : 0.00000001,
 
         "smearing": "fermi_dirac",
 
         "use_symmetry" : true,
 
-        "num_dft_iter": 8,
-
-        "gk_cutoff" : 12.0,
-        "pw_cutoff" : 24.00,
+        "gk_cutoff" : 6.0,
+        "pw_cutoff" : 12.0,
 
         "energy_tol" : 1e-8,
-        "density_tol" : 1e-6,
+        "density_tol" : 1e-8,
 
-        "ngridk" : [2,2,1]
-    },
-
-    "nlcg": {
-        "T": 3157.75,
-        "kappa": 0.3,
-        "maxiter": 300,
-        "processing_unit": "cpu",
-        "restart": 10,
-        "tau": 0.1,
-        "tol": 1E-8
+        "ngridk" : [2,2,2]
     },
 
     "iterative_solver" : {
-        "type" : "davidson"
+        "type" : "exact"
     },
 
     "unit_cell" : {
 
-        "lattice_vectors" : [ [1, 0, 0],
-                              [0, 1, 0],
-                              [0, 0, 0.9]
+        "lattice_vectors" : [ [0, 1, 1],
+                              [1, 0, 1],
+                              [1, 1, 0]
                             ],
-        "lattice_vectors_scale" : 7.260327248,
+        "lattice_vectors_scale" : 3.37,
 
-        "atom_types" : ["Sr", "V", "O"],
+        "atom_types" : ["C"],
 
         "atom_files" : {
-            "Sr" : "sr_lda_v1.uspp.F.UPF.json",
-            "V"  : "v_lda_v1.4.uspp.F.UPF.json",
-            "O"  : "o_lda_v1.2.uspp.F.UPF.json"
+            "C" : "C_molsim.upf.json"
         },
 
         "atoms" : {
-            "Sr" : [
-                [0.45, 0.5, 0.5]
-            ],
-            "V" : [
-                [0, 0, 0, 0, 0, 4]
-            ],
-            "O" : [
-                [0.5, 0.0, 0.0],
-                [0.0, 0.45, 0.0],
-                [0.0, 0.0, 0.5]
+            "C" : [
+                [0.375, 0.375, 0.375],
+                [-0.375, -0.375, -0.375]
             ]
         }
-    },
-
-    "mixer" : {
-        "beta" : 0.95,
-        "type" : "anderson",
-        "max_history" : 8,
-        "use_hartree" : true
     }
 
 }

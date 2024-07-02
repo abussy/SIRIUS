@@ -6973,7 +6973,7 @@ sirius_create_hamiltonian(void* const* gs_handler__, void** H0_handler__, int* e
                 // We assume that the GS density is up to date
                 bool transform_to_rg{true};
                 gs.potential().generate(gs.density(), gs.ctx().use_symmetry(), transform_to_rg);
-                bool precompute_lapw{true};
+                bool precompute_lapw{false};
                 *H0_handler__ = new any_ptr(new Hamiltonian0<double>(gs.potential(), precompute_lapw));
             },
             error_code__);
@@ -7028,7 +7028,6 @@ sirius_diagonalize_hamiltonian(void* const* gs_handler__, void* const* H0_handle
                 double iter_solver_tol = get_value(iter_solver_tol__);
                 int max_steps = get_value(max_steps__);
 
-                initialize_subspace(ks, H0);
                 auto result = sirius::diagonalize<double, double>(H0, ks, iter_solver_tol, max_steps); 
 
                 *converged__ = result.converged;
@@ -7192,13 +7191,8 @@ sirius_get_psi(void* const* ks_handler__, int* ik__, int* ispin__, std::complex<
                 auto& ctx = ks.ctx();
                 int ngk = kp->num_gkvec();
 
-                for (int igk = 0; igk<ngk; igk++){
-                  for (int ib = 0; ib<ctx.num_bands(); ib++){
-                    *(psi__+ ctx.num_bands()*igk + ib) = kp->spinor_wave_functions().
-                                    pw_coeffs(igk, wf::spin_index(ispin), wf::band_index(ib));
-                  }
-                }
-
+                std::memcpy(psi__, kp->spinor_wave_functions().pw_coeffs(wf::spin_index(ispin))
+                                  .at(memory_t::host), sizeof(std::complex<double>)*ngk*ctx.num_bands());
             },
             error_code__);
 }
@@ -7243,6 +7237,37 @@ sirius_get_gkvec(void* const* ks_handler__, int* ik__, double* gvec__, int* erro
                     *(gvec__+ 3*igk + i) = gkvec.gkvec(gvec_index_t::global(igk))[i];
                   }
                 }
+            },
+            error_code__);
+}
+
+/*
+@api begin
+sirius_set_energy_fermi:
+  doc: Sets the SIRIUS Fermi energy.
+  arguments:
+    ks_handler:
+      type: ks_handler
+      attr: in, required
+      doc: Handler for the k-point set.
+    energy_fermi:
+      type: double
+      attr: in, required
+      doc: Fermi energy to be set.
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+@api end
+*/
+void
+sirius_set_energy_fermi(void* const* ks_handler__, double* energy_fermi__, int* error_code__)
+{
+    call_sirius(
+            [&]() {
+                auto& ks = get_ks(ks_handler__);
+                double energy_fermi = get_value(energy_fermi__);
+                ks.set_energy_fermi(energy_fermi);
             },
             error_code__);
 }
