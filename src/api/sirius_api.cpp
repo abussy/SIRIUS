@@ -6984,6 +6984,10 @@ sirius_create_hamiltonian(void* const* gs_handler__, void** H0_handler__, int* e
 sirius_diagonalize_hamiltonian:
   doc: Diagonalizes the Hamiltonian.
   arguments:
+    handler:
+      type: ctx_handler
+      attr: in, required
+      doc: Simulation context handler.
     gs_handler:
       type: gs_handler
       attr: in, required
@@ -7000,6 +7004,10 @@ sirius_diagonalize_hamiltonian:
       type: int
       attr: in, required
       doc: Maximum number of steps for the iterative solver.
+    converge_by_energy:
+      type: int
+      attr: in, optional
+      doc: Whether the solver should determine convergence by checking the energy different (1), or the L2 norm of the residual (0). Default is value is 1.
     converged:
       type: bool
       attr: out, required
@@ -7015,18 +7023,32 @@ sirius_diagonalize_hamiltonian:
 @api end
 */
 void 
-sirius_diagonalize_hamiltonian(void* const* gs_handler__, void* const* H0_handler__, 
-                                    double* const iter_solver_tol__, int* const max_steps__, 
-                                    bool* converged__, int* niter__, int* error_code__)
+sirius_diagonalize_hamiltonian(void* const* handler__, void* const* gs_handler__,
+                               void* const* H0_handler__, double* const iter_solver_tol__,
+                               int* const max_steps__, int* converge_by_energy__,
+                               bool* converged__, int* niter__, int* error_code__)
 {
     call_sirius(
             [&]() {
                 auto& gs = get_gs(gs_handler__);
                 auto& ks = gs.k_point_set();
+                auto& sim_ctx = get_sim_ctx(handler__);
                 auto& H0 = get_H0(H0_handler__);
 
                 double iter_solver_tol = get_value(iter_solver_tol__);
                 int max_steps = get_value(max_steps__);
+
+                sim_ctx.cfg().unlock();
+                sim_ctx.cfg().iterative_solver().converge_by_energy(1);
+
+                if (converge_by_energy__ != nullptr) {
+                  int converge_by_energy = get_value(converge_by_energy__);
+                  if (converge_by_energy == 0){
+                    sim_ctx.cfg().iterative_solver().converge_by_energy(0);
+                    sim_ctx.cfg().iterative_solver().residual_tolerance(iter_solver_tol);
+                  }
+                }
+                sim_ctx.cfg().lock();
 
                 auto result = sirius::diagonalize<double, double>(H0, ks, iter_solver_tol, max_steps); 
 
@@ -7268,6 +7290,40 @@ sirius_set_energy_fermi(void* const* ks_handler__, double* energy_fermi__, int* 
                 auto& ks = get_ks(ks_handler__);
                 double energy_fermi = get_value(energy_fermi__);
                 ks.set_energy_fermi(energy_fermi);
+            },
+            error_code__);
+}
+
+/*
+@api begin
+sirius_set_atom_vector_field:
+  doc: Set new atomic vector field (aka initial magnetization).
+  arguments:
+    handler:
+      type: ctx_handler
+      attr: in, required
+      doc: Simulation context handler.
+    ia:
+      type: int
+      attr: in, required
+      doc: Index of atom; index starts form 1
+    vector_field:
+      type: double
+      attr: in, required, dimension(3)
+      doc: Atom vector field.
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+@api end
+*/
+void
+sirius_set_atom_vector_field(void* const* handler__, int const* ia__, double const* vector_field__, int* error_code__)
+{
+    call_sirius(
+            [&]() {
+                auto& sim_ctx = get_sim_ctx(handler__);
+                sim_ctx.unit_cell().atom(*ia__ - 1).set_vector_field(std::vector<double>(vector_field__, vector_field__ + 3));
             },
             error_code__);
 }

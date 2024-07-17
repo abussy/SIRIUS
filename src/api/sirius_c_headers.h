@@ -3534,6 +3534,10 @@ sirius_create_hamiltonian(void* const* gs_handler__, void** H0_handler__, int* e
 sirius_diagonalize_hamiltonian:
   doc: Diagonalizes the Hamiltonian.
   arguments:
+    handler:
+      type: ctx_handler
+      attr: in, required
+      doc: Simulation context handler.
     gs_handler:
       type: gs_handler
       attr: in, required
@@ -3550,6 +3554,10 @@ sirius_diagonalize_hamiltonian:
       type: int
       attr: in, required
       doc: Maximum number of steps for the iterative solver.
+    converge_by_energy:
+      type: int
+      attr: in, optional
+      doc: Whether the solver should determine convergence by checking the energy different (1), or the L2 norm of the residual (0). Default is value is 1.
     converged:
       type: bool
       attr: out, required
@@ -3564,9 +3572,10 @@ sirius_diagonalize_hamiltonian:
       doc: Error code.
 */
 void 
-sirius_diagonalize_hamiltonian(void* const* gs_handler__, void* const* H0_handler__, 
-                                    double* const iter_solver_tol__, int* const max_steps__, 
-                                    bool* converged__, int* niter__, int* error_code__);
+sirius_diagonalize_hamiltonian(void* const* handler__, void* const* gs_handler__,
+                               void* const* H0_handler__, double* const iter_solver_tol__,
+                               int* const max_steps__, int* converge_by_energy__,
+                               bool* converged__, int* niter__, int* error_code__);
 
 /*
 sirius_find_band_occupancies:
@@ -3700,4 +3709,28 @@ sirius_set_energy_fermi:
 */
 void
 sirius_set_energy_fermi(void* const* ks_handler__, double* energy_fermi__, int* error_code__);
+
+/*
+sirius_set_atom_vector_field:
+  doc: Set new atomic vector field (aka initial magnetization).
+  arguments:
+    handler:
+      type: ctx_handler
+      attr: in, required
+      doc: Simulation context handler.
+    ia:
+      type: int
+      attr: in, required
+      doc: Index of atom; index starts form 1
+    vector_field:
+      type: double
+      attr: in, required, dimension(3)
+      doc: Atom vector field.
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+*/
+void
+sirius_set_atom_vector_field(void* const* handler__, int const* ia__, double const* vector_field__, int* error_code__);
 

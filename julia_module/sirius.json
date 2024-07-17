@@ -2,8 +2,9 @@
     "control" : {
         "processing_unit" : "cpu",
         "verbosity" : 2,
-        "print_forces" : true,
-        "print_stress" : true
+        "num_bands_to_print": 20,
+        "print_forces" : false,
+        "print_stress" : false
     },
 
     "parameters" : {
@@ -12,11 +13,13 @@
 
         "xc_functionals" : ["XC_GGA_X_PBE", "XC_GGA_C_PBE"],
 
-        "smearing_width" : 0.00000001,
+        "smearing_width" : 0.1,
 
         "smearing": "fermi_dirac",
 
         "use_symmetry" : true,
+        "num_fv_states" : -1,
+        "num_bands" : 20,
 
         "gk_cutoff" : 6.0,
         "pw_cutoff" : 12.0,
@@ -27,26 +30,22 @@
         "ngridk" : [2,2,2]
     },
 
-    "iterative_solver" : {
-        "type" : "exact"
-    },
-
     "unit_cell" : {
 
         "lattice_vectors" : [ [0, 1, 1],
                               [1, 0, 1],
                               [1, 1, 0]
                             ],
-        "lattice_vectors_scale" : 3.37,
+        "lattice_vectors_scale" : 5.13,
 
-        "atom_types" : ["C"],
+        "atom_types" : ["Si"],
 
         "atom_files" : {
-            "C" : "C_molsim.upf.json"
+            "Si" : "Si.upf"
         },
 
         "atoms" : {
-            "C" : [
+            "Si" : [
                 [0.375, 0.375, 0.375],
                 [-0.375, -0.375, -0.375]
             ]
