@@ -754,6 +754,27 @@ is_upf_file(std::string const& str__)
 }
 
 #ifdef SIRIUS_USE_PUGIXML
+//template <typename T>
+//std::vector<T>
+//vec_from_str(std::string const& str__, identity_t<T> scaling = T{1})
+//{
+//    std::string s;
+//    std::istringstream ss(str__);
+//    std::vector<T> data;
+//    while (ss >> s) {
+//        if constexpr (std::is_same_v<T, double>) {
+//            data.push_back(std::stod(s) * scaling);
+//        } else if constexpr (std::is_same_v<T, int>) {
+//            data.push_back(std::stoi(s) * scaling);
+//        } else if constexpr (std::is_same_v<T, float>) {
+//            data.push_back(std::stof(s) * scaling);
+//        } else {
+//            static_assert(!std::is_same_v<T, T>, "type not implemented");
+//        }
+//    }
+//    return data;
+//}
+
 template <typename T>
 std::vector<T>
 vec_from_str(std::string const& str__, identity_t<T> scaling = T{1})

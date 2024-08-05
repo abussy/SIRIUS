@@ -7008,6 +7008,10 @@ sirius_diagonalize_hamiltonian:
       type: int
       attr: in, optional
       doc: Whether the solver should determine convergence by checking the energy different (1), or the L2 norm of the residual (0). Default is value is 1.
+    exact_diagonalization:
+      type: bool
+      attr: in, optional
+      doc: Whether an exact diagonalization should take place (rather than iterative Davidson)
     converged:
       type: bool
       attr: out, required
@@ -7026,6 +7030,7 @@ void
 sirius_diagonalize_hamiltonian(void* const* handler__, void* const* gs_handler__,
                                void* const* H0_handler__, double* const iter_solver_tol__,
                                int* const max_steps__, int* converge_by_energy__,
+                               bool* const exact_diagonalization__,
                                bool* converged__, int* niter__, int* error_code__)
 {
     call_sirius(
@@ -7039,6 +7044,8 @@ sirius_diagonalize_hamiltonian(void* const* handler__, void* const* gs_handler__
                 int max_steps = get_value(max_steps__);
 
                 sim_ctx.cfg().unlock();
+                // default settings
+                sim_ctx.cfg().iterative_solver().type("davidson");
                 sim_ctx.cfg().iterative_solver().converge_by_energy(1);
 
                 if (converge_by_energy__ != nullptr) {
@@ -7046,6 +7053,13 @@ sirius_diagonalize_hamiltonian(void* const* handler__, void* const* gs_handler__
                   if (converge_by_energy == 0){
                     sim_ctx.cfg().iterative_solver().converge_by_energy(0);
                     sim_ctx.cfg().iterative_solver().residual_tolerance(iter_solver_tol);
+                  }
+                }
+
+                if (exact_diagonalization__ != nullptr) {
+                  bool exact_diagonalization = get_value(exact_diagonalization__);
+                  if (exact_diagonalization){
+                    sim_ctx.cfg().iterative_solver().type("exact");
                   }
                 }
                 sim_ctx.cfg().lock();
@@ -7112,8 +7126,7 @@ sirius_set_num_bands(void* const* handler__, int* const num_bands__, int* error_
                 if (num_bands__ != nullptr) {
                     sim_ctx.cfg().unlock();
                     sim_ctx.num_bands(*num_bands__);
-                    sim_ctx.cfg().lock(); //TODO: not sure if that's safe, if not, need to
-                                    //      limit SIRIUS usage to fixed occupation
+                    sim_ctx.cfg().lock();
                 }
             },
             error_code__);
@@ -7209,7 +7222,6 @@ sirius_get_psi(void* const* ks_handler__, int* ik__, int* ispin__, std::complex<
                 int ispin = get_value(ispin__) -1 ;
                 auto kp   = ks.get<double>(ik);
 
-                //TODO: might want to avoid this loop, and get the whole array at once
                 auto& ctx = ks.ctx();
                 int ngk = kp->num_gkvec();
 
@@ -7253,7 +7265,6 @@ sirius_get_gkvec(void* const* ks_handler__, int* ik__, double* gvec__, int* erro
                 int ngk = kp->num_gkvec();
                 auto& gkvec =  kp->gkvec();
 
-                //TODO: might want to avoid this loop, and get the whole array at once
                 for (int igk = 0; igk<ngk; igk++){
                   for (int i = 0; i<3; i++){
                     *(gvec__+ 3*igk + i) = gkvec.gkvec(gvec_index_t::global(igk))[i];

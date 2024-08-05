@@ -3558,6 +3558,10 @@ sirius_diagonalize_hamiltonian:
       type: int
       attr: in, optional
       doc: Whether the solver should determine convergence by checking the energy different (1), or the L2 norm of the residual (0). Default is value is 1.
+    exact_diagonalization:
+      type: bool
+      attr: in, optional
+      doc: Whether an exact diagonalization should take place (rather than iterative Davidson)
     converged:
       type: bool
       attr: out, required
@@ -3575,6 +3579,7 @@ void
 sirius_diagonalize_hamiltonian(void* const* handler__, void* const* gs_handler__,
                                void* const* H0_handler__, double* const iter_solver_tol__,
                                int* const max_steps__, int* converge_by_energy__,
+                               bool* const exact_diagonalization__,
                                bool* converged__, int* niter__, int* error_code__);
 
 /*

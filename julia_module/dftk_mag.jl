@@ -9,25 +9,37 @@ a = 5.42352  # Bohr
 lattice = a / 2 * [[-1  1  1];
                    [ 1 -1  1];
                    [ 1  1 -1]]
-atoms     = [ElementPsp(:Fe; psp=load_psp("Fe.upf"; rcut=12.0))]
+
+#TODO: why do I get 1.0e-4 accuracy with Fe.upf, but 1.0e-6 with Fe_ONCV_PBE-1.0.upf
+#TODO: and why does the hgh potential crash with SIRIUS?
+atoms     = [ElementPsp(:Fe; psp=load_psp("Fe_test.upf"; rcut = 20.0))]
+#atoms     = [ElementPsp(:Fe; psp=load_psp("Fe_ONCV_PBE-1.0.upf"; rcut = 10.0))]
+#atoms     = [ElementPsp(:Fe; psp=load_psp("Fe.pbe-sp-hgh.UPF"; rcut = 8.0))]
 positions = [zeros(3)]
 
 kgrid = [3, 3, 3] 
 Ecut = 32     
 
 magnetic_moments = [4]
-#model = model_PBE(lattice, atoms, positions; magnetic_moments, temperature=0.01)
-model = model_LDA(lattice, atoms, positions; temperature=0.01)
+model = model_PBE(lattice, atoms, positions; magnetic_moments, temperature=0.01)
+#model = model_PBE(lattice, atoms, positions; temperature=0.02)
 
 basis = PlaneWaveBasis(model; Ecut, kgrid)
-#ρ0 = guess_density(basis, magnetic_moments)
-ρ0 = guess_density(basis)
-scfres = self_consistent_field(basis, tol=1e-7; maxiter=100, ρ=ρ0, mixing=SimpleMixing())
-scfres.energies
+ρ0 = guess_density(basis, magnetic_moments)
+#ρ0 = guess_density(basis)
+scfres = self_consistent_field(basis, tol=1e-8; maxiter=100, ρ=ρ0, mixing=SimpleMixing())
+#@show scfres.occupation[1]
+e1 = scfres.energies.total
 
 basis = SiriusBasis(model; Ecut, kgrid)
-#ρ0 = guess_density(basis)#, magnetic_moments)
-scfres = self_consistent_field(basis, tol=1e-7; maxiter=100, ρ=ρ0, mixing=SimpleMixing())
+#@show maximum(abs.(ρ0 - guess_density(basis, magnetic_moments)))
+ρ0 = guess_density(basis, magnetic_moments; use_dftk_guess=true)
+#ρ0 = guess_density(basis)
+scfres = self_consistent_field(basis, tol=1e-8; maxiter=100, ρ=ρ0, mixing=SimpleMixing())
+#@show scfres.occupation[1]
+e2 = scfres.energies.total
+
+@show "energy diff:" e1-e2
 scfres.energies
                                                                                                      
 #OLD SILICON TEST
