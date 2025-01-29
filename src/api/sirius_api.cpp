@@ -310,6 +310,15 @@ get_H0(void* const* h)
     return static_cast<any_ptr*>(*h)->get<Hamiltonian0<double>>();
 }
 
+Hamiltonian_k<double>&
+get_Hk(void* const* h)
+{
+    if (h == nullptr || *h == nullptr) {
+        RTE_THROW("Non-existing Hamiltonian handler");
+    }
+    return static_cast<any_ptr*>(*h)->get<Hamiltonian_k<double>>();
+}
+
 /// Index of Rlm in QE in the block of lm coefficients for a given l.
 static inline int
 idx_m_qe(int m__)
@@ -7019,6 +7028,47 @@ sirius_create_hamiltonian(void* const* gs_handler__, void** H0_handler__, int* e
 
 /*
 @api begin
+sirius_create_hamiltonian_k:
+  doc: Create a k-point dependent Hamiltonian based on H0 and ik.
+  arguments:
+    ks_handler:
+      type: ks_handler
+      attr: in, required
+      doc: Handler for the k-point set.
+    H0_handler:
+      type: H0_handler
+      attr: in, required
+      doc: The non-local H0 Hamiltonian.
+    Hk_handler:
+      type: Hk_handler
+      attr: out, required
+      doc: The new handler for the k-point dependent Hamiltonian
+    ik:
+      type: int
+      attr: in, required
+      doc: Index of the k-point. 
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+@api end
+*/
+void
+sirius_create_hamiltonian_k(void* const* ks_handler__, void* const* H0_handler__, void** Hk_handler__, int* ik__, int* error_code__)
+{
+    call_sirius(
+            [&]() {
+                auto& H0      = get_H0(H0_handler__);
+                int ik = get_value(ik__) - 1;
+                auto& ks = get_ks(ks_handler__);
+                auto kp   = ks.get<double>(ik);
+                *Hk_handler__ = new any_ptr(new Hamiltonian_k<double>(H0, *kp));
+            },
+            error_code__);
+}
+
+/*
+@api begin
 sirius_diagonalize_hamiltonian:
   doc: Diagonalizes the Hamiltonian.
   arguments:
@@ -7375,4 +7425,77 @@ sirius_set_atom_vector_field(void* const* handler__, int const* ia__, double con
             error_code__);
 }
 
+/*
+@api begin
+sirius_apply_h:
+  doc: Apply the k-point specfific Hamiltonian Hk to the wave functions
+  arguments:
+    ks_handler:
+      type: ks_handler
+      attr: in, required
+      doc: Handler for the k-point set.  
+    Hk_handler:
+      type: Hk_handler
+      attr: in, required
+      doc: K-point Hamiltonian handler.
+    ik:
+      type: int
+      attr: in, required
+      doc: Index of the k-point.
+    nbands:
+      type: int
+      attr: in, required
+      doc: number of bands considered
+    phi:
+      type: complex
+      attr: in, required, dimension(:)
+      doc: Pointer to the wave function coefficients.
+    hpsi:
+      type: complex
+      attr: inout, required, dimension(:)
+      doc: Pointer to the H x phi product
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+@api end
+*/
+void
+sirius_apply_h(void* const* ks_handler__, void* const* Hk_handler__, int* ik__, int* nbands__, 
+               std::complex<double>* phi__, std::complex<double>* hphi__, int* error_code__)
+{
+    call_sirius(
+            [&]() {
+                auto& Hk      = get_Hk(Hk_handler__);
+                auto& ctx = Hk.H0().ctx();
+                int ik = get_value(ik__) - 1;
+                auto& ks = get_ks(ks_handler__);
+                auto kp   = ks.get<double>(ik);
+                int ngk   = kp->num_gkvec();
+                int nbands = get_value(nbands__) - 1;
+
+                /// TODO: - Create a wf for phi and hphi, with the correct size 
+                ///       - cpoy data from the input array into phi 
+                ///       - apply_h_s
+                ///       - copy data to hphi__ output array
+                ///       - clean-up
+                /// We assume spin 1 throughout, as on the DFTK side, these are simply different k-points
+
+                /// Create the wfs
+
+                auto phi = sirius::wave_function_factory(ctx, *kp, wf::num_bands(nbands), wf::num_mag_dims(0), false);
+                auto hphi = sirius::wave_function_factory(ctx, *kp, wf::num_bands(nbands), wf::num_mag_dims(0), false);
+
+                /// CPU only for now
+                std::memcpy(phi->pw_coeffs(wf::spin_index(0)).at(memory_t::host), phi__,
+                            sizeof(std::complex<double>) * ngk * ctx.num_bands());
+
+                Hk.apply_h_s<std::complex<double>>(wf::spin_range(0), wf::band_range(0, nbands),
+                                                   *phi, hphi.get(), nullptr);
+
+                std::memcpy(hphi__, hphi->pw_coeffs(wf::spin_index(0)).at(memory_t::host),
+                            sizeof(std::complex<double>) * ngk * ctx.num_bands());
+            },
+            error_code__);
+}
 } // extern "C"

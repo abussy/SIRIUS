@@ -3262,8 +3262,8 @@ sirius_access_density_matrix:
       doc: Error code.
 */
 void
-sirius_access_density_matrix(void** gs_handler__, const char* access_type__, int const* ia__, double complex* dm__, int const* ld__,
-                          int* error_code__);
+sirius_access_density_matrix(void** gs_handler__, const char* access_type__, int const* ia__,
+                             double complex* dm__, int const* ld__, int* error_code__);
 
 /*
 sirius_access_local_occupation_matrix:
@@ -3307,8 +3307,9 @@ sirius_access_local_occupation_matrix:
       doc: Error code.
 */
 void
-sirius_access_local_occupation_matrix(void** handler__, const char* access_type__, int const* ia__, int const* n__, int const* l__, int const* spin__,
-                                   double complex* occ_mtrx__, int const* ld__, int* error_code__);
+sirius_access_local_occupation_matrix(void** handler__, const char* access_type__, int const* ia__, int const* n__,
+                                      int const* l__, int const* spin__, double complex* occ_mtrx__,
+                                      int const* ld__, int* error_code__);
 
 /*
 sirius_access_nonlocal_occupation_matrix:
@@ -3360,9 +3361,10 @@ sirius_access_nonlocal_occupation_matrix:
       doc: Error code.
 */
 void
-sirius_access_nonlocal_occupation_matrix(void** handler__, const char* access_type__, int const* atom_pair__, int const* n__, int const* l__,
-                                      int const* spin__, int const* T__, double complex* occ_mtrx__,
-                                      int const* ld1__, int const* ld2__, int* error_code__);
+sirius_access_nonlocal_occupation_matrix(void** handler__, const char* access_type__, int const* atom_pair__,
+                                         int const* n__, int const* l__, int const* spin__, int const* T__,
+                                         double complex* occ_mtrx__, int const* ld1__, int const* ld2__,
+                                         int* error_code__);
 
 /*
 sirius_get_major_version:
@@ -3541,6 +3543,34 @@ sirius_create_hamiltonian:
 */
 void
 sirius_create_hamiltonian(void* const* gs_handler__, void** H0_handler__, int* error_code__);
+
+/*
+sirius_create_hamiltonian_k:
+  doc: Create a k-point dependent Hamiltonian based on H0 and ik.
+  arguments:
+    ks_handler:
+      type: ks_handler
+      attr: in, required
+      doc: Handler for the k-point set.
+    H0_handler:
+      type: H0_handler
+      attr: in, required
+      doc: The non-local H0 Hamiltonian.
+    Hk_handler:
+      type: Hk_handler
+      attr: out, required
+      doc: The new handler for the k-point dependent Hamiltonian
+    ik:
+      type: int
+      attr: in, required
+      doc: Index of the k-point. 
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+*/
+void
+sirius_create_hamiltonian_k(void* const* ks_handler__, void* const* H0_handler__, void** Hk_handler__, int* ik__, int* error_code__);
 
 /*
 sirius_diagonalize_hamiltonian:
@@ -3747,4 +3777,41 @@ sirius_set_atom_vector_field:
 */
 void
 sirius_set_atom_vector_field(void* const* handler__, int const* ia__, double const* vector_field__, int* error_code__);
+
+/*
+sirius_apply_h:
+  doc: Apply the k-point specfific Hamiltonian Hk to the wave functions
+  arguments:
+    ks_handler:
+      type: ks_handler
+      attr: in, required
+      doc: Handler for the k-point set.  
+    Hk_handler:
+      type: Hk_handler
+      attr: in, required
+      doc: K-point Hamiltonian handler.
+    ik:
+      type: int
+      attr: in, required
+      doc: Index of the k-point.
+    nbands:
+      type: int
+      attr: in, required
+      doc: number of bands considered
+    phi:
+      type: complex
+      attr: in, required, dimension(:)
+      doc: Pointer to the wave function coefficients.
+    hpsi:
+      type: complex
+      attr: inout, required, dimension(:)
+      doc: Pointer to the H x phi product
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+*/
+void
+sirius_apply_h(void* const* ks_handler__, void* const* Hk_handler__, int* ik__, int* nbands__, 
+               double complex* phi__, double complex* hphi__, int* error_code__);
 
