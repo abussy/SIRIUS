@@ -1493,6 +1493,35 @@ sirius_set_band_occupancies(void* const* ks_handler__, int const* ik__, int cons
                             double const* band_occupancies__, int* error_code__);
 
 /*
+sirius_set_band_energies:
+  doc: Set band energies.
+  arguments:
+    ks_handler:
+      type: ks_handler
+      attr: in, required
+      doc: K-point set handler.
+    ik:
+      type: int
+      attr: in, required
+      doc: Global index of k-point.
+    ispn:
+      type: int
+      attr: in, required
+      doc: Spin component index.
+    band_energies:
+      type: double
+      attr: in, required, dimension(:)
+      doc: Array of band energies.
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
+*/
+void
+sirius_set_band_energies(void* const* ks_handler__, int const* ik__, int const* ispn__,
+                         double const* band_energies__, int* error_code__);
+
+/*
 sirius_get_band_occupancies:
   doc: Set band occupancies.
   arguments:
@@ -3545,34 +3574,6 @@ void
 sirius_create_hamiltonian(void* const* gs_handler__, void** H0_handler__, int* error_code__);
 
 /*
-sirius_create_hamiltonian_k:
-  doc: Create a k-point dependent Hamiltonian based on H0 and ik.
-  arguments:
-    ks_handler:
-      type: ks_handler
-      attr: in, required
-      doc: Handler for the k-point set.
-    H0_handler:
-      type: H0_handler
-      attr: in, required
-      doc: The non-local H0 Hamiltonian.
-    Hk_handler:
-      type: Hk_handler
-      attr: out, required
-      doc: The new handler for the k-point dependent Hamiltonian
-    ik:
-      type: int
-      attr: in, required
-      doc: Index of the k-point. 
-    error_code:
-      type: int
-      attr: out, optional
-      doc: Error code.
-*/
-void
-sirius_create_hamiltonian_k(void* const* ks_handler__, void* const* H0_handler__, void** Hk_handler__, int* ik__, int* error_code__);
-
-/*
 sirius_diagonalize_hamiltonian:
   doc: Diagonalizes the Hamiltonian.
   arguments:
@@ -3786,10 +3787,10 @@ sirius_apply_h:
       type: ks_handler
       attr: in, required
       doc: Handler for the k-point set.  
-    Hk_handler:
-      type: Hk_handler
+    H0_handler:
+      type: H0_handler
       attr: in, required
-      doc: K-point Hamiltonian handler.
+      doc: Hamiltonian handler.
     ik:
       type: int
       attr: in, required
@@ -3812,6 +3813,6 @@ sirius_apply_h:
       doc: Error code.
 */
 void
-sirius_apply_h(void* const* ks_handler__, void* const* Hk_handler__, int* ik__, int* nbands__, 
+sirius_apply_h(void* const* ks_handler__, void* const* H0_handler__, int* ik__, int* nbands__, 
                double complex* phi__, double complex* hphi__, int* error_code__);
 
