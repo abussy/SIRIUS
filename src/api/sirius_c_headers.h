@@ -3807,6 +3807,10 @@ sirius_apply_h:
       type: complex
       attr: inout, required, dimension(:)
       doc: Pointer to the H x phi product
+    elapse_ms:
+      type: double
+      attr: out, required
+      doc: Elapsed time in milliseconds for the Hk application.
     error_code:
       type: int
       attr: out, optional
@@ -3814,5 +3818,6 @@ sirius_apply_h:
 */
 void
 sirius_apply_h(void* const* ks_handler__, void* const* H0_handler__, int* ik__, int* nbands__, 
-               double complex* phi__, double complex* hphi__, int* error_code__);
+               double complex* phi__, double complex* hphi__, double* elapsed_ms__,
+               int* error_code__);
 

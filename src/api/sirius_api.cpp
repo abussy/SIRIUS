@@ -13,6 +13,7 @@
 
 #include <ctype.h>
 #include <iostream>
+#include <chrono>
 #include <string>
 #include "core/any_ptr.hpp"
 #include "core/profiler.hpp"
@@ -7446,6 +7447,10 @@ sirius_apply_h:
       type: complex
       attr: inout, required, dimension(:)
       doc: Pointer to the H x phi product
+    elapse_ms:
+      type: double
+      attr: out, required
+      doc: Elapsed time in milliseconds for the Hk application.
     error_code:
       type: int
       attr: out, optional
@@ -7454,7 +7459,8 @@ sirius_apply_h:
 */
 void
 sirius_apply_h(void* const* ks_handler__, void* const* H0_handler__, int* ik__, int* nbands__, 
-               std::complex<double>* phi__, std::complex<double>* hphi__, int* error_code__)
+               std::complex<double>* phi__, std::complex<double>* hphi__, double* elapsed_ms__,
+               int* error_code__)
 {
     call_sirius(
             [&]() {
@@ -7481,13 +7487,7 @@ sirius_apply_h(void* const* ks_handler__, void* const* H0_handler__, int* ik__, 
 
                 /// TODO: it would probably be great if hphi is stored internally in the SIRIUS k-point
                 //auto phi = sirius::wave_function_factory(ctx, *kp, wf::num_bands(nbands), wf::num_mag_dims(0), false);
-                auto hphi = sirius::wave_function_factory(ctx, *kp, wf::num_bands(nbands), wf::num_mag_dims(0), false);
-
-                // TEST
-                //memory_t mem = ctx.processing_unit_memory_t();
-                //std::vector<wf::device_memory_guard> mg;
-                //mg.emplace_back(phi->memory_guard(mem));
-                //mg.emplace_back(hphi->memory_guard(mem));
+                auto hphi = sirius::wave_function_factory(ctx, *kp, wf::num_bands(nbands), wf::num_mag_dims(0), false); 
 
                 /// CPU only for now
                 //std::memcpy(phi->pw_coeffs(wf::spin_index(0)).at(memory_t::host), phi__,
@@ -7495,10 +7495,30 @@ sirius_apply_h(void* const* ks_handler__, void* const* H0_handler__, int* ik__, 
                 std::memcpy(kp->spinor_wave_functions().pw_coeffs(wf::spin_index(0)).at(memory_t::host), phi__,
                             sizeof(std::complex<double>) * ngk * nbands); 
 
+                // TEST
+                memory_t mem = ctx.processing_unit_memory_t(); 
+                std::vector<wf::device_memory_guard> mg; 
+
+                mg.emplace_back(kp->spinor_wave_functions().memory_guard(mem, wf::copy_to::device));
+                mg.emplace_back(hphi->memory_guard(mem, wf::copy_to::host));
+
                 // TODO: or complex type?
+                if (mem == memory_t::device){
+                  acc::sync();
+                }
+                auto start = std::chrono::high_resolution_clock::now();
                 Hk.apply_h_s<std::complex<double>>(wf::spin_range(0), wf::band_range(0, nbands), 
                                                    kp->spinor_wave_functions(), hphi.get(), nullptr);
+                if (mem == memory_t::device){
+                  acc::sync();
+                }
+                auto end = std::chrono::high_resolution_clock::now();
 
+                // Duration in milliseconds as double
+                std::chrono::duration<double, std::milli> duration = end - start;
+                *elapsed_ms__ = duration.count();
+
+                mg.clear();
                 std::memcpy(hphi__, hphi->pw_coeffs(wf::spin_index(0)).at(memory_t::host),
                             sizeof(std::complex<double>) * ngk * nbands);
 
